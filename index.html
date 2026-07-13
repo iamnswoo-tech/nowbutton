@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>건강 측정 v19 — ME-rPPG</title>
+<title>건강 측정 v27 — ME-rPPG</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -11579,6 +11579,264 @@ canvas {
 
 /* ── 링크 ───────────────────────────────────────────── */
 a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v26.1 — 팝업/모달 가독성 수정
+   흰 배경 카드(베타·인앱·권한·피드백 안내)는 테마에서 제외 → 검정 글씨 복원
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 1) 팝업 카드는 흰 배경 + 어두운 글씨로 원복 */
+.beta-card, .inapp-card, .modal-card, .badge-card, .feedback-card,
+.beta-modal .beta-card, .inapp-modal .inapp-card, .modal .modal-card {
+  background: #FFFFFF !important;
+  color: #1A2B45 !important;
+  border: none !important;
+  border-radius: 24px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 20px 60px rgba(10, 30, 60, .28) !important;
+}
+
+/* 2) 팝업 내부 모든 텍스트 = 어두운 색 (흰 글씨 방지) */
+.beta-card *, .inapp-card *, .modal-card *, .badge-card *, .feedback-card * {
+  color: #1A2B45 !important;
+  border-color: rgba(15, 23, 42, .10) !important;
+}
+/* 보조 문구는 회색 */
+.beta-msg, .inapp-msg, .modal-msg, .step-text, .beta-list li,
+.inapp-issue, .modal-sub, .feedback-sub {
+  color: #4B5563 !important;
+}
+.beta-title, .inapp-title, .modal-title, .feedback-title {
+  color: #1A2B45 !important;
+  font-weight: 800 !important;
+}
+/* 강조(strong)는 브랜드 컬러 */
+.beta-card strong, .inapp-card strong, .modal-card strong {
+  color: #2D7CFF !important;
+}
+
+/* 3) 팝업 내부 버튼 — 흰 글씨가 아니라 제대로 보이게 */
+.beta-btn, .inapp-btn, .modal-btn, .feedback-btn, .badge-btn,
+.beta-card button, .inapp-card button, .modal-card button, .feedback-card button {
+  background: #F1F3F6 !important;
+  color: #1A2B45 !important;
+  border: 1px solid rgba(15, 23, 42, .10) !important;
+  border-radius: 14px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+  padding: 13px 18px !important;
+}
+/* 주요 버튼(시작하기 등)은 파란 배경 + 흰 글씨 */
+.beta-btn.primary, .inapp-btn.primary, .modal-btn.primary, .feedback-btn.primary,
+.beta-card button.primary, .inapp-card button.primary {
+  background: #2D7CFF !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+.beta-btn.primary *, .inapp-btn.primary *, .modal-btn.primary * {
+  color: #FFFFFF !important;
+}
+
+/* 4) 팝업 내부 입력창 */
+.feedback-card textarea, .feedback-card input, .modal-card input {
+  background: #F7F9FC !important;
+  color: #1A2B45 !important;
+  border: 1px solid rgba(15,23,42,.12) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.feedback-card textarea::placeholder, .modal-card input::placeholder {
+  color: #9AA5B1 !important;
+}
+
+/* 5) 팝업 안내 박스(노란/회색 박스) */
+.inapp-issues, .beta-list, .modal-steps {
+  background: #F7F9FC !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15,23,42,.06) !important;
+}
+.inapp-issues { background: #FFF7E6 !important; }
+.inapp-issue { color: #92400E !important; }
+.inapp-hint, .modal-hint {
+  background: #F1F3F6 !important;
+  color: #4B5563 !important;
+  border-radius: 12px !important;
+}
+
+/* 6) 팝업 배경(오버레이)은 어둡게 */
+.beta-modal, .inapp-modal, .modal, .badge-modal, .feedback-modal {
+  background: rgba(10, 30, 60, .55) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* 7) 배지 팝업(뱃지 획득)도 동일 처리 */
+.badge-modal .badge-card * { color: #1A2B45 !important; }
+
+/* ── 흰 배경 카드(측정 항목 리스트 등) 가독성 보정 ────────────
+   일부 카드는 흰 배경이 강제되어 있어 흰 글씨가 묻힘 → 어두운 글씨로 */
+.measure-card, .gp-card, .reco-item, .rec-item, .ai-reco-item,
+.mc-item, .measure-list-item {
+  color: #1A2B45 !important;
+}
+.measure-card *, .gp-card *, .reco-item *, .rec-item *, .ai-reco-item * {
+  color: inherit !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v26.2 — 잔여 가독성 완전 수정
+   ① 흰 배경 카드 내부(팝업·인트로) 텍스트/버튼 = 어두운 색
+   ② 헤더 로고·타이틀 = 대비 확보
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────
+   ① 흰 배경 컨테이너 — 내부 전체를 어두운 글씨로 (최우선)
+   ───────────────────────────────────────────────────────── */
+.modal-card, .beta-card, .inapp-card, .badge-card, .feedback-card,
+.mood-intro, .mood-quick-section, .game-intro, .bt-intro,
+.finger-howto-card, .finger-ai-card {
+  background: #FFFFFF !important;
+  color: #1A2B45 !important;
+  border-radius: 24px !important;
+  border: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 8px 32px rgba(10, 30, 60, .16) !important;
+}
+
+/* 내부 모든 하위 요소 (small, strong, p, span, div 포함) */
+.modal-card *, .beta-card *, .inapp-card *, .badge-card *, .feedback-card *,
+.mood-intro *, .mood-quick-section *, .game-intro *, .bt-intro *,
+.finger-howto-card *, .finger-ai-card * {
+  color: #1A2B45 !important;
+}
+/* 보조/작은 글씨는 회색 */
+.modal-card small, .modal-card p, .step-text small, .modal-sub,
+.beta-msg, .inapp-msg, .mood-intro-sub, .mood-intro-meta, .mood-quick-sub,
+.mood-tip, .beta-list li, .howto-step, .finger-howto-card small {
+  color: #4B5563 !important;
+}
+/* 제목은 진하게 */
+.modal-title, .beta-title, .inapp-title, .mood-intro-title,
+.mood-quick-title, .feedback-title, .badge-title {
+  color: #1A2B45 !important;
+  font-weight: 800 !important;
+}
+/* 강조는 브랜드 컬러 */
+.modal-card strong, .beta-card strong, .inapp-card strong,
+.mood-intro strong, .step-text strong {
+  color: #2D7CFF !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ② 흰 배경 카드 안의 버튼 — 반드시 보이게
+   ───────────────────────────────────────────────────────── */
+.m-btn, .mood-start-btn, .mood-history-btn, .beta-btn, .inapp-btn,
+.modal-btn, .feedback-btn, .badge-btn, .howto-btn,
+.modal-card button, .beta-card button, .inapp-card button,
+.mood-intro button, .feedback-card button, .badge-card button {
+  background: #F1F3F6 !important;
+  color: #1A2B45 !important;
+  border: 1px solid rgba(15, 23, 42, .10) !important;
+  border-radius: 14px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+  padding: 14px 18px !important;
+}
+.m-btn *, .mood-start-btn *, .mood-history-btn *,
+.modal-card button *, .mood-intro button * {
+  color: inherit !important;
+}
+/* 주요 액션 버튼 = 파란 배경 + 흰 글씨 */
+.m-btn.ok, .m-btn.primary, .beta-btn.primary, .inapp-btn.primary,
+.modal-btn.primary, .mood-start-btn, .feedback-btn.primary {
+  background: #2D7CFF !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+.m-btn.ok *, .m-btn.primary *, .beta-btn.primary *,
+.inapp-btn.primary *, .mood-start-btn * {
+  color: #FFFFFF !important;
+}
+/* 보조 버튼(일지 보기, 링크 복사, 나중에) */
+.mood-history-btn, .inapp-btn.secondary, .m-btn.later, .m-btn.cancel {
+  background: #F1F3F6 !important;
+  color: #4B5563 !important;
+}
+.mood-history-btn *, .inapp-btn.secondary * { color: #4B5563 !important; }
+
+/* 팁/안내 박스 */
+.mood-intro-tips, .beta-list, .modal-steps, .inapp-issues, .howto-box {
+  background: #F7F9FC !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15, 23, 42, .06) !important;
+}
+.inapp-issues { background: #FFF7E6 !important; }
+.inapp-issue { color: #92400E !important; }
+.modal-step { background: transparent !important; }
+.step-num { color: #1A2B45 !important; }
+
+/* 팝업 오버레이 */
+.modal, .beta-modal, .inapp-modal, .badge-modal, .feedback-modal {
+  background: rgba(10, 30, 60, .55) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ③ 헤더 — 로고·타이틀 대비 확보
+   ───────────────────────────────────────────────────────── */
+.hd {
+  background: rgba(255, 255, 255, .14) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
+  backdrop-filter: blur(16px) saturate(130%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, .22) !important;
+}
+.hd-title {
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 6px rgba(10, 40, 80, .35) !important;
+}
+.hd-sub {
+  color: rgba(255, 255, 255, .88) !important;
+  text-shadow: 0 1px 4px rgba(10, 40, 80, .30) !important;
+  letter-spacing: .5px !important;
+}
+.hd-logo, .hd-logo img, .hd-logo svg {
+  filter: drop-shadow(0 2px 6px rgba(10, 40, 80, .35)) !important;
+}
+/* 로고 아이콘 배경(있으면) */
+.hd-logo > div:first-child, .hd-icon, .logo-box {
+  background: rgba(255, 255, 255, .22) !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, .30) !important;
+}
+.hd-ver {
+  background: rgba(255, 255, 255, .24) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255, 255, 255, .32) !important;
+  text-shadow: 0 1px 3px rgba(10, 40, 80, .30) !important;
+  font-weight: 700 !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ④ 서브 헤더(측정 페이지 상단: "반응속도 검사" 등)
+   ───────────────────────────────────────────────────────── */
+.sub-hd, .page-hd, .bt-hd, .measure-hd {
+  background: rgba(255, 255, 255, .82) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(12px) !important;
+}
+.sub-hd *, .page-hd *, .bt-hd *, .measure-hd * {
+  color: #1A2B45 !important;
+  text-shadow: none !important;
+}
+.sub-hd small, .page-hd small, .bt-hd small { color: #4B5563 !important; }
 </style>
 </head>
 <body>
@@ -11594,11 +11852,11 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
       </svg>
     </div>
     <div>
-      <div class="hd-title">오늘의 활력 버튼</div>
+      <div class="hd-title">Reset Button For You</div>
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v26.0 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v26.2 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
@@ -12877,8 +13135,8 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
     <span style="color:#9ca3af">⚠️ 본 앱은 의료기기가 아닌 건강 참고용 도구입니다.</span>
   </div>
 
-  v19.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
-  ✉ Reset Button 문의: iamnsw@naver.com
+  v27 · 얼굴/손가락/심리 + 신체 측정 분리<br>
+  ✉ Reset Button 
 </footer>
 
 <script src="app.js"></script>
