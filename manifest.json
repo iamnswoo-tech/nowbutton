@@ -1,0 +1,24 @@
+{
+  "name": "건강 측정 v26.0",
+  "short_name": "건강측정 v20.0",
+  "description": "v20.0 — 트렌드 강화·추천엔진·수면연동·가족알림·음성고도화",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#5AA9DE",
+  "background_color": "#7FC5E8",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
