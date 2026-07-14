@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>건강 측정 v27 — ME-rPPG</title>
+<title>건강 측정 v26 — ME-rPPG</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -11837,6 +11837,218 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
   text-shadow: none !important;
 }
 .sub-hd small, .page-hd small, .bt-hd small { color: #4B5563 !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v26.3 — 폰트 대비 전면 재정비 (원칙 기반)
+   원칙 ①: 인라인 배경색을 쓰는 요소는 테마가 절대 건드리지 않음
+   원칙 ②: 흰/밝은 배경 카드 = 반드시 어두운 글씨
+   원칙 ③: 유리 카드(하늘 배경 위) = 흰 글씨 + 그림자
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────
+   ① 색상 선택 원 — 원래 색 복원 (테마 완전 제외)
+   ───────────────────────────────────────────────────────── */
+.quickc-btn {
+  background: unset !important;          /* 인라인 style 살림 */
+  border: 3px solid rgba(255,255,255,.85) !important;
+  border-radius: 50% !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 4px 16px rgba(10,30,60,.22) !important;
+  position: relative !important;
+}
+/* 색 이름 — 원 아래에 검은 글씨 + 흰 외곽선으로 어떤 색 위에서도 보이게 */
+.quickc-name {
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  text-shadow:
+     0 1px 3px rgba(0,0,0,.85),
+     0 0 6px rgba(0,0,0,.55) !important;
+}
+.quickc-hint { color: #FFFFFF !important; text-shadow: 0 1px 4px rgba(10,40,80,.5) !important; }
+
+/* 인라인 배경을 쓰는 다른 요소들도 색 복원 */
+.bbc-conf, .pmi-next-btn, .ppg-adv-badge, .ppg-sum-badge,
+.res-mini-icon, .ucc-badge, .badge[style*="background"],
+[style*="background:#"], [style*="background: #"],
+[style*="background:linear"], [style*="background: linear"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ② 흰 배경 카드 = 어두운 글씨 (측정 단계·팝업·게임)
+   ───────────────────────────────────────────────────────── */
+.integrated-step-card, .modal-card, .beta-card, .inapp-card,
+.badge-card, .feedback-card, .mood-intro, .mood-quick-section,
+.game-intro, .bt-intro, .finger-howto-card, .finger-ai-card,
+.panas-card, .energy-card, .step-card, .quiz-card {
+  background: #FFFFFF !important;
+  color: #1A2B45 !important;
+  border: none !important;
+  border-radius: 24px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 8px 32px rgba(10, 30, 60, .16) !important;
+}
+/* 내부 텍스트 — 어두운 색 (단, 색상 원은 제외) */
+.integrated-step-card *:not(.quickc-btn):not(.quickc-name),
+.modal-card *, .beta-card *, .inapp-card *, .badge-card *,
+.feedback-card *, .mood-intro *, .mood-quick-section *,
+.game-intro *, .bt-intro *, .finger-howto-card *,
+.panas-card *, .energy-card *, .step-card * {
+  color: #1A2B45 !important;
+  text-shadow: none !important;
+}
+/* 제목 */
+.integrated-step-title, .modal-title, .beta-title, .inapp-title,
+.mood-intro-title, .mood-quick-title, .panas-q, .energy-q {
+  color: #1A2B45 !important;
+  font-weight: 800 !important;
+}
+/* 보조 문구 */
+.integrated-step-sub, .modal-card p, .modal-card small, .step-text small,
+.beta-msg, .inapp-msg, .mood-intro-sub, .mood-intro-meta,
+.mood-quick-sub, .mood-tip, .beta-list li, .energy-sub, .panas-sub {
+  color: #4B5563 !important;
+}
+.integrated-step-card small, .integrated-step-sub small { color: #6B7684 !important; }
+/* 강조 */
+.integrated-step-card strong, .modal-card strong, .beta-card strong,
+.inapp-card strong, .mood-intro strong { color: #2D7CFF !important; }
+
+/* 색상 원은 위 규칙에서 제외 — 이름은 흰 글씨 유지 */
+.integrated-step-card .quickc-name { color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 6px rgba(0,0,0,.55) !important; }
+.integrated-step-card .quickc-hint { color: #4B5563 !important; text-shadow: none !important; }
+
+/* 흰 카드 안 버튼 */
+.m-btn, .mood-start-btn, .mood-history-btn, .beta-btn, .inapp-btn,
+.modal-btn, .feedback-btn, .badge-btn, .panas-btn, .energy-btn,
+.modal-card button, .beta-card button, .inapp-card button,
+.mood-intro button, .integrated-step-card button:not(.quickc-btn):not(.quickf-btn) {
+  background: #F1F3F6 !important;
+  color: #1A2B45 !important;
+  border: 1px solid rgba(15, 23, 42, .10) !important;
+  border-radius: 14px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}
+.m-btn.ok, .m-btn.primary, .beta-btn.primary, .inapp-btn.primary,
+.modal-btn.primary, .mood-start-btn, .panas-next, .energy-next {
+  background: #2D7CFF !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+.m-btn.ok *, .m-btn.primary *, .mood-start-btn *,
+.panas-next *, .energy-next * { color: #FFFFFF !important; }
+.mood-history-btn, .inapp-btn.secondary { background: #F1F3F6 !important; color: #4B5563 !important; }
+
+/* 표정 선택 버튼 (감정 3단계) — 흰 카드 안 */
+.quickf-btn {
+  background: #F7F9FC !important;
+  border: 1px solid rgba(15,23,42,.08) !important;
+  border-radius: 18px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.quickf-label { color: #1A2B45 !important; font-weight: 700 !important; text-shadow: none !important; }
+
+/* 팁/안내 박스 */
+.mood-intro-tips, .beta-list, .modal-steps, .inapp-issues {
+  background: #F7F9FC !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(15,23,42,.06) !important;
+}
+.inapp-issues { background: #FFF7E6 !important; }
+.inapp-issue { color: #92400E !important; }
+
+/* 진행바 (감정 단계 1/3) */
+.integrated-progress, .step-progress { background: rgba(255,255,255,.35) !important; }
+.integrated-progress-fill, .step-progress-fill { background: #7C3AED !important; }
+.integrated-step-count, .step-count {
+  color: #FFFFFF !important; text-shadow: 0 1px 4px rgba(10,40,80,.5) !important; font-weight: 700 !important;
+}
+
+/* 에너지 슬라이더 (2/3 단계) */
+.energy-slider { background: rgba(15,23,42,.10) !important; }
+.energy-val { color: #2D7CFF !important; font-weight: 800 !important; }
+.energy-labels, .energy-labels * { color: #4B5563 !important; }
+
+/* ─────────────────────────────────────────────────────────
+   ③ 유리 카드(하늘 배경 위) — 흰 글씨 + 그림자로 대비 확보
+   ───────────────────────────────────────────────────────── */
+.card, .wellness-card, .privacy-card, .care-card, .brain-balance-card,
+.rg-card, .ui-card, .mood-card-v2, .hero {
+  color: #FFFFFF !important;
+}
+.card, .wellness-card, .privacy-card, .care-card, .brain-balance-card {
+  background: rgba(255,255,255,.20) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+}
+/* 유리 카드 내부 텍스트 — 그림자로 가독성 확보 */
+.card > *, .wellness-card > *, .privacy-card > *, .care-card > *,
+.brain-balance-card > *, .rg-card > *, .hero > * {
+  text-shadow: 0 1px 4px rgba(10, 40, 80, .35) !important;
+}
+.bbc-title, .bbc-desc, .card-title, .card-sub, .hero-title, .hero-sub {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 5px rgba(10, 40, 80, .40) !important;
+}
+/* 유리 카드 안의 항목 행(낙상 위험도 평가 등) — 배경 진하게 + 흰 글씨 */
+.bbc-item, .bbc-feature, .care-item, .feature-row, .list-row {
+  background: rgba(255,255,255,.22) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  border-radius: 14px !important;
+  color: #FFFFFF !important;
+}
+.bbc-item *, .bbc-feature *, .care-item * {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(10,40,80,.45) !important;
+  font-weight: 700 !important;
+}
+/* 유리 카드 안의 CTA 버튼 — 진한 파랑으로 확실히 */
+.bbc-cta, .care-cta, .card .btn-primary, .privacy-card .btn-primary {
+  background: rgba(255,255,255,.30) !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 4px rgba(10,40,80,.45) !important;
+}
+
+/* 홈 상단 "기본 정보 입력하기" 등 진한 버튼 유지 */
+.basic-info-cta, .bic-btn {
+  background: #2D7CFF !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  text-shadow: none !important;
+  font-weight: 800 !important;
+}
+
+/* NEW 배지 */
+.new-badge, .badge-new {
+  background: #7C3AED !important;
+  color: #FFFFFF !important;
+  text-shadow: none !important;
+  border: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────
+   ④ 서브 헤더 (오늘의 감정 / 반응속도 검사 등)
+   ───────────────────────────────────────────────────────── */
+.sub-hd, .page-hd, .bt-hd, .measure-hd, .mood-hd {
+  background: rgba(255,255,255,.88) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(12px) !important;
+}
+.sub-hd *, .page-hd *, .bt-hd *, .measure-hd *, .mood-hd * {
+  color: #1A2B45 !important;
+  text-shadow: none !important;
+}
+.sub-hd small, .page-hd small, .bt-hd small, .mood-hd small,
+.sub-hd .sub, .page-hd .sub { color: #4B5563 !important; }
 </style>
 </head>
 <body>
@@ -11856,12 +12068,12 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v26.2 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v26.3 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
 <div class="page on" id="page-home">
-  <!-- ★ v22.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
+  <!-- ★ v26.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
   <div id="home-hero-dynamic"></div>
 
   <div class="hero" id="home-hero-default">
@@ -13135,7 +13347,7 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
     <span style="color:#9ca3af">⚠️ 본 앱은 의료기기가 아닌 건강 참고용 도구입니다.</span>
   </div>
 
-  v27 · 얼굴/손가락/심리 + 신체 측정 분리<br>
+  v26.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
   ✉ Reset Button 
 </footer>
 
