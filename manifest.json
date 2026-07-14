@@ -1,12 +1,12 @@
 {
-  "name": "건강 측정 v26.3",
+  "name": "건강 측정 v27.0",
   "short_name": "건강측정 v20.0",
   "description": "v20.0 — 트렌드 강화·추천엔진·수면연동·가족알림·음성고도화",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#5AA9DE",
-  "background_color": "#7FC5E8",
+  "theme_color": "#3480BE",
+  "background_color": "#3E8CC4",
   "icons": [
     {
       "src": "icons/icon-192.png",

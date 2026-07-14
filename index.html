@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#5AA9DE">
+<meta name="theme-color" content="#3480BE">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>건강 측정 v26 — ME-rPPG</title>
+<title>건강 측정 v27 — ME-rPPG</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -11332,723 +11332,297 @@ body::before {
   color: #6B7684; cursor: pointer; font-family: inherit;
 }
 
+
 /* ══════════════════════════════════════════════════════════════════
-   ★ v26.0 — SKY THEME (Samsung One UI Weather 스타일)
-   원칙: CSS 오버라이드만. HTML/JS 무수정 → 기능 100% 보존
-   특징: 하늘 그라디언트 + 반투명 유리 카드 + 흰 텍스트 + 큰 라운드
+   ★ v27.0 — SKY THEME (재설계)
+   설계 원칙:
+   ① 인라인 배경색(색상 원 등)은 테마가 절대 건드리지 않음 → :not() 제외
+   ② 유리 카드는 충분히 불투명(0.30+) → 콘텐츠가 배경에 안 묻힘
+   ③ 흰 배경 카드 = 어두운 글씨 / 유리 카드 = 흰 글씨 + 그림자
    ══════════════════════════════════════════════════════════════════ */
 
 :root {
-  --sky-1: #7FC5E8;   /* 상단 하늘 */
-  --sky-2: #6FB8E5;
-  --sky-3: #5AA9DE;
-  --sky-4: #7EC2A8;   /* 중간 청록 */
-  --sky-5: #4E9BD6;
-  --sky-6: #2E7FD0;   /* 하단 진한 파랑 */
-  --glass: rgba(255, 255, 255, .18);
-  --glass-2: rgba(255, 255, 255, .26);
-  --glass-line: rgba(255, 255, 255, .28);
-  --ink: #FFFFFF;
-  --ink-2: rgba(255, 255, 255, .82);
-  --ink-3: rgba(255, 255, 255, .62);
+  /* ★ v27.1: 배경을 진하게 → 흰 글씨 대비 확보 (WCAG 4.5:1) */
+  --sky-a: #3E8CC4;
+  --sky-b: #3480BE;
+  --sky-c: #368D84;
+  --sky-d: #2E77BE;
+  --sky-e: #1E5FA8;
+  /* ★ v27.2: 카드를 어두운 반투명으로 → 흰 글씨 대비 확실히 확보 (WCAG 통과) */
+  --glass:      rgba(18, 60, 105, .42);
+  --glass-soft: rgba(18, 60, 105, .32);
+  --glass-line: rgba(255,255,255,.28);
+  --sh: 0 1px 4px rgba(5,25,55,.55);     /* 텍스트 그림자 강화 */
+  --ink:  #FFFFFF;
+  --ink2: rgba(255,255,255,.90);
+  --dark: #14243D;                        /* 흰 카드용 진한 글씨 */
+  --dark2:#4B5563;
 }
 
-/* ── 배경: 고정 하늘 그라디언트 ────────────────────────── */
-html {
+/* ── 배경 ────────────────────────────────────────────── */
+html, body {
   background: linear-gradient(180deg,
-    var(--sky-1) 0%, var(--sky-2) 18%, var(--sky-3) 34%,
-    var(--sky-4) 52%, var(--sky-5) 72%, var(--sky-6) 100%) !important;
+    var(--sky-a) 0%, var(--sky-b) 22%, var(--sky-c) 48%,
+    var(--sky-d) 74%, var(--sky-e) 100%) !important;
   background-attachment: fixed !important;
 }
-body {
-  background: linear-gradient(180deg,
-    var(--sky-1) 0%, var(--sky-2) 18%, var(--sky-3) 34%,
-    var(--sky-4) 52%, var(--sky-5) 72%, var(--sky-6) 100%) !important;
-  background-attachment: fixed !important;
-  color: var(--ink) !important;
-}
+body { color: var(--ink) !important; }
 body::before {
-  content: '' !important;
-  position: fixed !important;
-  inset: 0 !important;
-  background:
-    radial-gradient(120% 60% at 20% 0%, rgba(255,255,255,.30), transparent 60%),
-    radial-gradient(100% 40% at 85% 8%, rgba(255,255,255,.18), transparent 65%) !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
+  content: '' !important; position: fixed !important; inset: 0 !important;
+  background: radial-gradient(120% 55% at 25% 0%, rgba(255,255,255,.28), transparent 62%) !important;
+  opacity: 1 !important; pointer-events: none !important; z-index: 0 !important;
 }
+.page, .container, main, #app { background: transparent !important; position: relative; z-index: 1; }
 
-/* ── 모든 카드/패널 → 반투명 유리 ─────────────────────── */
-.card, .wellness-card, .info-card, .privacy-card, .care-card, .sqi-card,
-.hero, .measure-cards, .body-measure-cards, .finger-ai-card, .finger-howto-card,
-.finger-wave-card, .fls-card, .console-card, .rg-card, .ui-card, .mood-card-v2,
-.brain-balance-card, .bt-result-card, .ppg-adv-card, .r-panel, .panel,
-.result-card, .trend-card, .stat-card, .measure-card, .game-card,
-.integrated-step-card, .emotion-result-hero, .quickf-btn, .measurer-card,
-.gp-card, .achievement-card, .reco-card, .basic-info-card {
+/* ══════════════════════════════════════════════════════
+   A. 유리 카드 (하늘 배경 위) — 흰 글씨
+   ══════════════════════════════════════════════════════ */
+.card, .wellness-card, .privacy-card, .care-card, .brain-balance-card,
+.rg-card, .ui-card, .mood-card-v2, .info-card, .sqi-card, .fls-card,
+.bt-result-card, .result-card, .trend-card, .ppg-adv-card {
   background: var(--glass) !important;
   border: 1px solid var(--glass-line) !important;
-  border-radius: 26px !important;
-  box-shadow: 0 4px 20px rgba(20, 60, 110, .10) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(130%) !important;
-  backdrop-filter: blur(18px) saturate(130%) !important;
-  color: var(--ink) !important;
-}
-
-/* 카드 내부 텍스트 전부 흰색 계열 */
-.card *, .wellness-card *, .info-card *, .privacy-card *, .care-card *,
-.hero *, .rg-card *, .ui-card *, .mood-card-v2 *, .brain-balance-card *,
-.bt-result-card *, .r-panel *, .result-card *, .measure-card *,
-.integrated-step-card *, .sqi-card *, .fls-card * {
-  color: var(--ink) !important;
-  border-color: var(--glass-line) !important;
-}
-/* 보조 텍스트는 살짝 투명하게 */
-.card-sub, .hero-sub, .rg-comment, .ppg-adv-sub, .ppg-adv-detail,
-.mc-sub, .measure-sub, .privacy-row span, .nav-label,
-.integrated-step-sub, .measurer-sub, small, .sub, .desc, .hint {
-  color: var(--ink-2) !important;
-}
-.ppg-adv-disclaimer, .disclaimer, .caption, .note-text {
-  color: var(--ink-3) !important;
-}
-
-/* ── 헤더 ───────────────────────────────────────────── */
-.hd {
-  background: transparent !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  backdrop-filter: blur(12px) !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
-  color: var(--ink) !important;
-}
-.hd *, .hd-title, .hd-sub { color: var(--ink) !important; }
-.hd-ver {
-  background: var(--glass-2) !important;
-  color: var(--ink) !important;
-  border-radius: 999px !important;
-  padding: 4px 12px !important;
-  border: 1px solid var(--glass-line) !important;
-}
-
-/* ── 히어로 (대형 타이틀) ───────────────────────────── */
-.hero, #home-hero-dynamic > * {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-.hero-title, .hero-emoji {
-  color: var(--ink) !important;
-  text-shadow: 0 2px 12px rgba(20, 60, 110, .18) !important;
-}
-.hero-title { font-weight: 800 !important; letter-spacing: -.5px !important; }
-
-/* ── 버튼 ───────────────────────────────────────────── */
-.btn, button, .measure-btn, .privacy-btn, .measurer-btn, .cta,
-.btn-primary, .start-btn, .gp-btn, .privacy-measurer-btn {
-  background: var(--glass-2) !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--glass-line) !important;
-  border-radius: 999px !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  backdrop-filter: blur(10px) !important;
-  box-shadow: 0 2px 10px rgba(20, 60, 110, .10) !important;
-  font-weight: 700 !important;
-}
-.btn:active, button:active { transform: scale(.97) !important; }
-/* 주요 액션 버튼은 좀 더 진하게 */
-.btn-primary, .measure-btn, .cta, .start-btn {
-  background: rgba(255, 255, 255, .34) !important;
-}
-
-/* ── 입력 필드 ──────────────────────────────────────── */
-input, select, textarea, .measurer-input, .privacy-measurer-input, .setting-input {
-  background: rgba(255, 255, 255, .20) !important;
-  border: 1px solid var(--glass-line) !important;
-  border-radius: 14px !important;
-  color: var(--ink) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  backdrop-filter: blur(8px) !important;
-}
-input::placeholder, textarea::placeholder { color: var(--ink-3) !important; }
-input:focus, .measurer-input:focus, .privacy-measurer-input:focus {
-  border-color: rgba(255, 255, 255, .60) !important;
-  outline: none !important;
-}
-
-/* ── 하단 네비게이션 ────────────────────────────────── */
-.bottom-nav, .tabbar, .nav-bar {
-  background: rgba(255, 255, 255, .16) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
-  backdrop-filter: blur(22px) saturate(140%) !important;
-  border-top: 1px solid var(--glass-line) !important;
-  box-shadow: 0 -4px 20px rgba(20, 60, 110, .10) !important;
-}
-.nav-btn { color: var(--ink-2) !important; background: transparent !important; }
-.nav-btn.on { color: var(--ink) !important; }
-.nav-btn.on::before {
-  background: var(--ink) !important;
-  opacity: .9 !important;
-}
-.nav-label { color: inherit !important; }
-
-/* ── 진행바 / 게이지 ────────────────────────────────── */
-.progress, .bar, .gauge-bg, .score-bar, .progress-bg {
-  background: rgba(255, 255, 255, .22) !important;
-  border-radius: 999px !important;
-}
-.progress-fill, .bar-fill, .score-fill, .gauge-fill {
-  background: rgba(255, 255, 255, .85) !important;
-  border-radius: 999px !important;
-}
-
-/* ── 배지 / 칩 ──────────────────────────────────────── */
-.badge, .chip, .tag, .rg-badge, .ppg-adv-badge, .pill {
-  background: var(--glass-2) !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--glass-line) !important;
-  border-radius: 999px !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-/* ── 토글 스위치 ────────────────────────────────────── */
-.privacy-switch { background: rgba(255,255,255,.28) !important; }
-.privacy-optout-label input:checked ~ .privacy-switch {
-  background: rgba(255, 255, 255, .75) !important;
-}
-.privacy-switch::after { background: #2E7FD0 !important; }
-
-/* ── 모달 ───────────────────────────────────────────── */
-.modal, .modal-content, .privacy-modal, .sheet {
-  background: rgba(255, 255, 255, .22) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
-  backdrop-filter: blur(24px) saturate(140%) !important;
-  border: 1px solid var(--glass-line) !important;
-  border-radius: 28px !important;
-  color: var(--ink) !important;
-}
-.modal *, .privacy-modal * { color: var(--ink) !important; }
-.modal-backdrop, .overlay {
-  background: rgba(20, 60, 110, .35) !important;
-  -webkit-backdrop-filter: blur(6px) !important;
-  backdrop-filter: blur(6px) !important;
-}
-
-/* ── 페이지 컨테이너 (배경 투명화) ─────────────────── */
-.page, .container, main, #app, .content {
-  background: transparent !important;
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-/* ── 표 ─────────────────────────────────────────────── */
-table, th, td {
-  color: var(--ink) !important;
-  border-color: var(--glass-line) !important;
-  background: transparent !important;
-}
-th { background: rgba(255, 255, 255, .14) !important; }
-
-/* ── 캔버스(파형)는 어둡게 유지해 가독성 확보 ──────── */
-canvas {
-  border-radius: 18px !important;
-  background: rgba(10, 30, 60, .30) !important;
-}
-
-/* ── 측정 화면(카메라)은 원래대로 어둡게 ───────────── */
-.cam-wrap, .camera-wrap, video, .face-cam, .finger-cam {
-  border-radius: 22px !important;
-}
-
-/* ── 스크롤바 ───────────────────────────────────────── */
-::-webkit-scrollbar { width: 0 !important; }
-
-/* ── 토스트 ─────────────────────────────────────────── */
-.toast {
-  background: rgba(255, 255, 255, .28) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  backdrop-filter: blur(16px) !important;
-  color: var(--ink) !important;
-  border: 1px solid var(--glass-line) !important;
-  border-radius: 999px !important;
-}
-
-/* ── 링크 ───────────────────────────────────────────── */
-a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !important; }
-
-/* ══════════════════════════════════════════════════════════════════
-   ★ v26.1 — 팝업/모달 가독성 수정
-   흰 배경 카드(베타·인앱·권한·피드백 안내)는 테마에서 제외 → 검정 글씨 복원
-   ══════════════════════════════════════════════════════════════════ */
-
-/* 1) 팝업 카드는 흰 배경 + 어두운 글씨로 원복 */
-.beta-card, .inapp-card, .modal-card, .badge-card, .feedback-card,
-.beta-modal .beta-card, .inapp-modal .inapp-card, .modal .modal-card {
-  background: #FFFFFF !important;
-  color: #1A2B45 !important;
-  border: none !important;
   border-radius: 24px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: 0 20px 60px rgba(10, 30, 60, .28) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(125%) !important;
+  backdrop-filter: blur(16px) saturate(125%) !important;
+  box-shadow: 0 4px 18px rgba(10,45,90,.12) !important;
+  color: var(--ink) !important;
 }
+/* 유리 카드 내부 텍스트 — 흰색 + 그림자 (인라인 배경 요소는 제외) */
+.card :not([style*="background"]),
+.wellness-card :not([style*="background"]),
+.privacy-card :not([style*="background"]),
+.care-card :not([style*="background"]),
+.brain-balance-card :not([style*="background"]),
+.rg-card :not([style*="background"]),
+.info-card :not([style*="background"]) {
+  color: var(--ink) !important;
+  text-shadow: var(--sh) !important;
+}
+/* 히어로 */
+.hero { background: transparent !important; border: none !important; box-shadow: none !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.hero-title, .hero-sub, .hero-emoji {
+  color: var(--ink) !important; text-shadow: 0 2px 8px rgba(8,35,70,.45) !important; }
 
-/* 2) 팝업 내부 모든 텍스트 = 어두운 색 (흰 글씨 방지) */
-.beta-card *, .inapp-card *, .modal-card *, .badge-card *, .feedback-card * {
-  color: #1A2B45 !important;
-  border-color: rgba(15, 23, 42, .10) !important;
-}
-/* 보조 문구는 회색 */
-.beta-msg, .inapp-msg, .modal-msg, .step-text, .beta-list li,
-.inapp-issue, .modal-sub, .feedback-sub {
-  color: #4B5563 !important;
-}
-.beta-title, .inapp-title, .modal-title, .feedback-title {
-  color: #1A2B45 !important;
-  font-weight: 800 !important;
-}
-/* 강조(strong)는 브랜드 컬러 */
-.beta-card strong, .inapp-card strong, .modal-card strong {
-  color: #2D7CFF !important;
-}
-
-/* 3) 팝업 내부 버튼 — 흰 글씨가 아니라 제대로 보이게 */
-.beta-btn, .inapp-btn, .modal-btn, .feedback-btn, .badge-btn,
-.beta-card button, .inapp-card button, .modal-card button, .feedback-card button {
-  background: #F1F3F6 !important;
-  color: #1A2B45 !important;
-  border: 1px solid rgba(15, 23, 42, .10) !important;
+/* 유리 카드 안의 항목 행 — 배경을 진하게 해서 확실히 분리 */
+.bbc-item, .bbc-feature, .care-item, .feature-row, .list-row,
+.rec-item, .reco-item, .ai-reco-item {
+  background: rgba(10, 45, 85, .38) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
   border-radius: 14px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: none !important;
-  font-weight: 700 !important;
-  padding: 13px 18px !important;
 }
-/* 주요 버튼(시작하기 등)은 파란 배경 + 흰 글씨 */
-.beta-btn.primary, .inapp-btn.primary, .modal-btn.primary, .feedback-btn.primary,
-.beta-card button.primary, .inapp-card button.primary {
-  background: #2D7CFF !important;
-  color: #FFFFFF !important;
-  border: none !important;
-}
-.beta-btn.primary *, .inapp-btn.primary *, .modal-btn.primary * {
-  color: #FFFFFF !important;
-}
+.bbc-item *, .bbc-feature *, .care-item *, .rec-item *, .reco-item * {
+  color: var(--ink) !important; text-shadow: var(--sh) !important; font-weight: 700 !important; }
 
-/* 4) 팝업 내부 입력창 */
-.feedback-card textarea, .feedback-card input, .modal-card input {
-  background: #F7F9FC !important;
-  color: #1A2B45 !important;
-  border: 1px solid rgba(15,23,42,.12) !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-.feedback-card textarea::placeholder, .modal-card input::placeholder {
-  color: #9AA5B1 !important;
-}
+/* 유리 카드 안 CTA */
+.bbc-cta, .care-cta, .card .btn-primary {
+  background: rgba(45, 124, 255, .85) !important;
+  border: 1px solid rgba(255,255,255,.35) !important;
+  color: var(--ink) !important; font-weight: 800 !important;
+  text-shadow: var(--sh) !important; border-radius: 16px !important;
+  -webkit-backdrop-filter: blur(8px) !important; backdrop-filter: blur(8px) !important; }
 
-/* 5) 팝업 안내 박스(노란/회색 박스) */
-.inapp-issues, .beta-list, .modal-steps {
-  background: #F7F9FC !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(15,23,42,.06) !important;
+/* ══════════════════════════════════════════════════════
+   B. 종합 점수 카드의 측정 항목 타일 — 대비 확보
+   ══════════════════════════════════════════════════════ */
+.ws-item, .score-item, .metric-tile, .ws-tile, .wellness-item {
+  background: rgba(10, 45, 85, .38) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  border-radius: 16px !important;
 }
-.inapp-issues { background: #FFF7E6 !important; }
-.inapp-issue { color: #92400E !important; }
-.inapp-hint, .modal-hint {
-  background: #F1F3F6 !important;
-  color: #4B5563 !important;
-  border-radius: 12px !important;
-}
+.ws-item *, .score-item *, .metric-tile *, .wellness-item * {
+  color: var(--ink) !important; text-shadow: var(--sh) !important; }
+/* 미측정(비활성) 타일 — 흐리게 하되 읽히게 */
+.ws-item.empty, .score-item.empty, .metric-tile.empty,
+.ws-item.inactive, .wellness-item.inactive {
+  background: rgba(10, 45, 85, .26) !important;
+  border: 1px dashed rgba(255,255,255,.30) !important; }
+.ws-item.empty *, .score-item.empty *, .metric-tile.empty *,
+.wellness-item.inactive * {
+  color: rgba(255,255,255,.92) !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.55) !important; }
 
-/* 6) 팝업 배경(오버레이)은 어둡게 */
-.beta-modal, .inapp-modal, .modal, .badge-modal, .feedback-modal {
-  background: rgba(10, 30, 60, .55) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  backdrop-filter: blur(4px) !important;
-}
-
-/* 7) 배지 팝업(뱃지 획득)도 동일 처리 */
-.badge-modal .badge-card * { color: #1A2B45 !important; }
-
-/* ── 흰 배경 카드(측정 항목 리스트 등) 가독성 보정 ────────────
-   일부 카드는 흰 배경이 강제되어 있어 흰 글씨가 묻힘 → 어두운 글씨로 */
-.measure-card, .gp-card, .reco-item, .rec-item, .ai-reco-item,
-.mc-item, .measure-list-item {
-  color: #1A2B45 !important;
-}
-.measure-card *, .gp-card *, .reco-item *, .rec-item *, .ai-reco-item * {
-  color: inherit !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   ★ v26.2 — 잔여 가독성 완전 수정
-   ① 흰 배경 카드 내부(팝업·인트로) 텍스트/버튼 = 어두운 색
-   ② 헤더 로고·타이틀 = 대비 확보
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ─────────────────────────────────────────────────────────
-   ① 흰 배경 컨테이너 — 내부 전체를 어두운 글씨로 (최우선)
-   ───────────────────────────────────────────────────────── */
-.modal-card, .beta-card, .inapp-card, .badge-card, .feedback-card,
-.mood-intro, .mood-quick-section, .game-intro, .bt-intro,
-.finger-howto-card, .finger-ai-card {
-  background: #FFFFFF !important;
-  color: #1A2B45 !important;
-  border-radius: 24px !important;
-  border: none !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: 0 8px 32px rgba(10, 30, 60, .16) !important;
-}
-
-/* 내부 모든 하위 요소 (small, strong, p, span, div 포함) */
-.modal-card *, .beta-card *, .inapp-card *, .badge-card *, .feedback-card *,
-.mood-intro *, .mood-quick-section *, .game-intro *, .bt-intro *,
-.finger-howto-card *, .finger-ai-card * {
-  color: #1A2B45 !important;
-}
-/* 보조/작은 글씨는 회색 */
-.modal-card small, .modal-card p, .step-text small, .modal-sub,
-.beta-msg, .inapp-msg, .mood-intro-sub, .mood-intro-meta, .mood-quick-sub,
-.mood-tip, .beta-list li, .howto-step, .finger-howto-card small {
-  color: #4B5563 !important;
-}
-/* 제목은 진하게 */
-.modal-title, .beta-title, .inapp-title, .mood-intro-title,
-.mood-quick-title, .feedback-title, .badge-title {
-  color: #1A2B45 !important;
-  font-weight: 800 !important;
-}
-/* 강조는 브랜드 컬러 */
-.modal-card strong, .beta-card strong, .inapp-card strong,
-.mood-intro strong, .step-text strong {
-  color: #2D7CFF !important;
-}
-
-/* ─────────────────────────────────────────────────────────
-   ② 흰 배경 카드 안의 버튼 — 반드시 보이게
-   ───────────────────────────────────────────────────────── */
-.m-btn, .mood-start-btn, .mood-history-btn, .beta-btn, .inapp-btn,
-.modal-btn, .feedback-btn, .badge-btn, .howto-btn,
-.modal-card button, .beta-card button, .inapp-card button,
-.mood-intro button, .feedback-card button, .badge-card button {
-  background: #F1F3F6 !important;
-  color: #1A2B45 !important;
-  border: 1px solid rgba(15, 23, 42, .10) !important;
-  border-radius: 14px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: none !important;
-  font-weight: 700 !important;
-  padding: 14px 18px !important;
-}
-.m-btn *, .mood-start-btn *, .mood-history-btn *,
-.modal-card button *, .mood-intro button * {
-  color: inherit !important;
-}
-/* 주요 액션 버튼 = 파란 배경 + 흰 글씨 */
-.m-btn.ok, .m-btn.primary, .beta-btn.primary, .inapp-btn.primary,
-.modal-btn.primary, .mood-start-btn, .feedback-btn.primary {
-  background: #2D7CFF !important;
-  color: #FFFFFF !important;
-  border: none !important;
-}
-.m-btn.ok *, .m-btn.primary *, .beta-btn.primary *,
-.inapp-btn.primary *, .mood-start-btn * {
-  color: #FFFFFF !important;
-}
-/* 보조 버튼(일지 보기, 링크 복사, 나중에) */
-.mood-history-btn, .inapp-btn.secondary, .m-btn.later, .m-btn.cancel {
-  background: #F1F3F6 !important;
-  color: #4B5563 !important;
-}
-.mood-history-btn *, .inapp-btn.secondary * { color: #4B5563 !important; }
-
-/* 팁/안내 박스 */
-.mood-intro-tips, .beta-list, .modal-steps, .inapp-issues, .howto-box {
-  background: #F7F9FC !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(15, 23, 42, .06) !important;
-}
-.inapp-issues { background: #FFF7E6 !important; }
-.inapp-issue { color: #92400E !important; }
-.modal-step { background: transparent !important; }
-.step-num { color: #1A2B45 !important; }
-
-/* 팝업 오버레이 */
-.modal, .beta-modal, .inapp-modal, .badge-modal, .feedback-modal {
-  background: rgba(10, 30, 60, .55) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  backdrop-filter: blur(4px) !important;
-}
-
-/* ─────────────────────────────────────────────────────────
-   ③ 헤더 — 로고·타이틀 대비 확보
-   ───────────────────────────────────────────────────────── */
-.hd {
-  background: rgba(255, 255, 255, .14) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
-  backdrop-filter: blur(16px) saturate(130%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, .22) !important;
-}
-.hd-title {
-  color: #FFFFFF !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 6px rgba(10, 40, 80, .35) !important;
-}
-.hd-sub {
-  color: rgba(255, 255, 255, .88) !important;
-  text-shadow: 0 1px 4px rgba(10, 40, 80, .30) !important;
-  letter-spacing: .5px !important;
-}
-.hd-logo, .hd-logo img, .hd-logo svg {
-  filter: drop-shadow(0 2px 6px rgba(10, 40, 80, .35)) !important;
-}
-/* 로고 아이콘 배경(있으면) */
-.hd-logo > div:first-child, .hd-icon, .logo-box {
-  background: rgba(255, 255, 255, .22) !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(255, 255, 255, .30) !important;
-}
-.hd-ver {
-  background: rgba(255, 255, 255, .24) !important;
-  color: #FFFFFF !important;
-  border: 1px solid rgba(255, 255, 255, .32) !important;
-  text-shadow: 0 1px 3px rgba(10, 40, 80, .30) !important;
-  font-weight: 700 !important;
-}
-
-/* ─────────────────────────────────────────────────────────
-   ④ 서브 헤더(측정 페이지 상단: "반응속도 검사" 등)
-   ───────────────────────────────────────────────────────── */
-.sub-hd, .page-hd, .bt-hd, .measure-hd {
-  background: rgba(255, 255, 255, .82) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  backdrop-filter: blur(12px) !important;
-}
-.sub-hd *, .page-hd *, .bt-hd *, .measure-hd * {
-  color: #1A2B45 !important;
-  text-shadow: none !important;
-}
-.sub-hd small, .page-hd small, .bt-hd small { color: #4B5563 !important; }
-
-/* ══════════════════════════════════════════════════════════════════
-   ★ v26.3 — 폰트 대비 전면 재정비 (원칙 기반)
-   원칙 ①: 인라인 배경색을 쓰는 요소는 테마가 절대 건드리지 않음
-   원칙 ②: 흰/밝은 배경 카드 = 반드시 어두운 글씨
-   원칙 ③: 유리 카드(하늘 배경 위) = 흰 글씨 + 그림자
-   ══════════════════════════════════════════════════════════════════ */
-
-/* ─────────────────────────────────────────────────────────
-   ① 색상 선택 원 — 원래 색 복원 (테마 완전 제외)
-   ───────────────────────────────────────────────────────── */
-.quickc-btn {
-  background: unset !important;          /* 인라인 style 살림 */
-  border: 3px solid rgba(255,255,255,.85) !important;
-  border-radius: 50% !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: 0 4px 16px rgba(10,30,60,.22) !important;
-  position: relative !important;
-}
-/* 색 이름 — 원 아래에 검은 글씨 + 흰 외곽선으로 어떤 색 위에서도 보이게 */
-.quickc-name {
-  color: #FFFFFF !important;
-  font-weight: 800 !important;
-  text-shadow:
-     0 1px 3px rgba(0,0,0,.85),
-     0 0 6px rgba(0,0,0,.55) !important;
-}
-.quickc-hint { color: #FFFFFF !important; text-shadow: 0 1px 4px rgba(10,40,80,.5) !important; }
-
-/* 인라인 배경을 쓰는 다른 요소들도 색 복원 */
-.bbc-conf, .pmi-next-btn, .ppg-adv-badge, .ppg-sum-badge,
-.res-mini-icon, .ucc-badge, .badge[style*="background"],
-[style*="background:#"], [style*="background: #"],
-[style*="background:linear"], [style*="background: linear"] {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-
-/* ─────────────────────────────────────────────────────────
-   ② 흰 배경 카드 = 어두운 글씨 (측정 단계·팝업·게임)
-   ───────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   C. 흰 배경 카드 (측정 단계·팝업·게임) — 어두운 글씨
+   ══════════════════════════════════════════════════════ */
 .integrated-step-card, .modal-card, .beta-card, .inapp-card,
 .badge-card, .feedback-card, .mood-intro, .mood-quick-section,
 .game-intro, .bt-intro, .finger-howto-card, .finger-ai-card,
-.panas-card, .energy-card, .step-card, .quiz-card {
+.panas-card, .energy-card, .step-card {
   background: #FFFFFF !important;
-  color: #1A2B45 !important;
+  color: var(--dark) !important;
   border: none !important;
   border-radius: 24px !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  box-shadow: 0 8px 32px rgba(10, 30, 60, .16) !important;
+  box-shadow: 0 8px 30px rgba(10,35,70,.18) !important;
 }
-/* 내부 텍스트 — 어두운 색 (단, 색상 원은 제외) */
-.integrated-step-card *:not(.quickc-btn):not(.quickc-name),
-.modal-card *, .beta-card *, .inapp-card *, .badge-card *,
-.feedback-card *, .mood-intro *, .mood-quick-section *,
-.game-intro *, .bt-intro *, .finger-howto-card *,
-.panas-card *, .energy-card *, .step-card * {
-  color: #1A2B45 !important;
+/* 내부 텍스트 — 어두운 글씨 (★ 인라인 배경 요소는 제외 = 색상 원 보존) */
+.integrated-step-card :not([style*="background"]),
+.modal-card :not([style*="background"]),
+.beta-card :not([style*="background"]),
+.inapp-card :not([style*="background"]),
+.mood-intro :not([style*="background"]),
+.mood-quick-section :not([style*="background"]),
+.finger-howto-card :not([style*="background"]),
+.panas-card :not([style*="background"]),
+.energy-card :not([style*="background"]) {
+  color: var(--dark) !important;
   text-shadow: none !important;
 }
 /* 제목 */
 .integrated-step-title, .modal-title, .beta-title, .inapp-title,
 .mood-intro-title, .mood-quick-title, .panas-q, .energy-q {
-  color: #1A2B45 !important;
-  font-weight: 800 !important;
-}
+  color: var(--dark) !important; font-weight: 800 !important; }
 /* 보조 문구 */
 .integrated-step-sub, .modal-card p, .modal-card small, .step-text small,
-.beta-msg, .inapp-msg, .mood-intro-sub, .mood-intro-meta,
-.mood-quick-sub, .mood-tip, .beta-list li, .energy-sub, .panas-sub {
-  color: #4B5563 !important;
-}
-.integrated-step-card small, .integrated-step-sub small { color: #6B7684 !important; }
+.beta-msg, .inapp-msg, .mood-intro-sub, .mood-intro-meta, .mood-quick-sub,
+.mood-tip, .beta-list li, .energy-sub, .quickc-hint {
+  color: var(--dark2) !important; }
+.integrated-step-sub small { color: #6B7684 !important; }
 /* 강조 */
 .integrated-step-card strong, .modal-card strong, .beta-card strong,
 .inapp-card strong, .mood-intro strong { color: #2D7CFF !important; }
 
-/* 색상 원은 위 규칙에서 제외 — 이름은 흰 글씨 유지 */
-.integrated-step-card .quickc-name { color: #FFFFFF !important;
-  text-shadow: 0 1px 3px rgba(0,0,0,.85), 0 0 6px rgba(0,0,0,.55) !important; }
-.integrated-step-card .quickc-hint { color: #4B5563 !important; text-shadow: none !important; }
-
-/* 흰 카드 안 버튼 */
+/* 흰 카드 안 버튼 (색상 원/표정 버튼은 제외) */
 .m-btn, .mood-start-btn, .mood-history-btn, .beta-btn, .inapp-btn,
-.modal-btn, .feedback-btn, .badge-btn, .panas-btn, .energy-btn,
-.modal-card button, .beta-card button, .inapp-card button,
-.mood-intro button, .integrated-step-card button:not(.quickc-btn):not(.quickf-btn) {
+.modal-btn, .feedback-btn, .badge-btn, .panas-btn, .energy-next {
   background: #F1F3F6 !important;
-  color: #1A2B45 !important;
-  border: 1px solid rgba(15, 23, 42, .10) !important;
+  color: var(--dark) !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
   border-radius: 14px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-  box-shadow: none !important;
-  font-weight: 700 !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: none !important; font-weight: 700 !important;
+  text-shadow: none !important;
 }
 .m-btn.ok, .m-btn.primary, .beta-btn.primary, .inapp-btn.primary,
-.modal-btn.primary, .mood-start-btn, .panas-next, .energy-next {
-  background: #2D7CFF !important;
-  color: #FFFFFF !important;
-  border: none !important;
-}
-.m-btn.ok *, .m-btn.primary *, .mood-start-btn *,
-.panas-next *, .energy-next * { color: #FFFFFF !important; }
-.mood-history-btn, .inapp-btn.secondary { background: #F1F3F6 !important; color: #4B5563 !important; }
+.modal-btn.primary, .mood-start-btn, .energy-next {
+  background: #2D7CFF !important; color: #FFFFFF !important; border: none !important; }
+.m-btn.ok *, .m-btn.primary *, .mood-start-btn *, .energy-next * {
+  color: #FFFFFF !important; }
+.mood-history-btn, .inapp-btn.secondary {
+  background: #F1F3F6 !important; color: var(--dark2) !important; }
 
-/* 표정 선택 버튼 (감정 3단계) — 흰 카드 안 */
+/* 팁/안내 박스 */
+.mood-intro-tips, .beta-list, .modal-steps {
+  background: #F7F9FC !important; border-radius: 14px !important;
+  border: 1px solid rgba(15,23,42,.06) !important; }
+.inapp-issues { background: #FFF7E6 !important; border-radius: 14px !important; }
+.inapp-issue { color: #92400E !important; }
+
+/* ══════════════════════════════════════════════════════
+   D. 색상 선택 원 — 인라인 색상 100% 보존 (background 안 건드림)
+   ══════════════════════════════════════════════════════ */
+.quickc-btn {
+  border: 3px solid #FFFFFF !important;
+  border-radius: 50% !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 3px 12px rgba(10,35,70,.28) !important;
+  /* ★ background 속성 자체를 선언하지 않음 → 인라인 style이 그대로 적용됨 */
+}
+.quickc-name {
+  color: #FFFFFF !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.9), 0 0 5px rgba(0,0,0,.6) !important;
+}
+
+/* 표정 선택 버튼 (흰 카드 안) */
 .quickf-btn {
   background: #F7F9FC !important;
   border: 1px solid rgba(15,23,42,.08) !important;
   border-radius: 18px !important;
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-.quickf-label { color: #1A2B45 !important; font-weight: 700 !important; text-shadow: none !important; }
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.quickf-label { color: var(--dark) !important; font-weight: 700 !important; text-shadow: none !important; }
 
-/* 팁/안내 박스 */
-.mood-intro-tips, .beta-list, .modal-steps, .inapp-issues {
-  background: #F7F9FC !important;
-  border-radius: 14px !important;
-  border: 1px solid rgba(15,23,42,.06) !important;
-}
-.inapp-issues { background: #FFF7E6 !important; }
-.inapp-issue { color: #92400E !important; }
+/* ══════════════════════════════════════════════════════
+   E. 헤더 / 서브헤더 / 네비
+   ══════════════════════════════════════════════════════ */
+.hd {
+  background: rgba(12, 50, 95, .40) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
+  backdrop-filter: blur(16px) saturate(130%) !important;
+  border-bottom: 1px solid rgba(255,255,255,.26) !important; }
+.hd-title { color: var(--ink) !important; font-weight: 800 !important;
+  text-shadow: 0 1px 6px rgba(8,35,70,.42) !important; }
+.hd-sub { color: var(--ink2) !important; text-shadow: var(--sh) !important; }
+.hd-logo { filter: drop-shadow(0 2px 6px rgba(8,35,70,.40)) !important; }
+.hd-ver {
+  background: rgba(255,255,255,.22) !important; color: var(--ink) !important;
+  border: 1px solid rgba(255,255,255,.40) !important; border-radius: 999px !important;
+  text-shadow: var(--sh) !important; font-weight: 700 !important; }
 
-/* 진행바 (감정 단계 1/3) */
-.integrated-progress, .step-progress { background: rgba(255,255,255,.35) !important; }
-.integrated-progress-fill, .step-progress-fill { background: #7C3AED !important; }
-.integrated-step-count, .step-count {
-  color: #FFFFFF !important; text-shadow: 0 1px 4px rgba(10,40,80,.5) !important; font-weight: 700 !important;
-}
-
-/* 에너지 슬라이더 (2/3 단계) */
-.energy-slider { background: rgba(15,23,42,.10) !important; }
-.energy-val { color: #2D7CFF !important; font-weight: 800 !important; }
-.energy-labels, .energy-labels * { color: #4B5563 !important; }
-
-/* ─────────────────────────────────────────────────────────
-   ③ 유리 카드(하늘 배경 위) — 흰 글씨 + 그림자로 대비 확보
-   ───────────────────────────────────────────────────────── */
-.card, .wellness-card, .privacy-card, .care-card, .brain-balance-card,
-.rg-card, .ui-card, .mood-card-v2, .hero {
-  color: #FFFFFF !important;
-}
-.card, .wellness-card, .privacy-card, .care-card, .brain-balance-card {
-  background: rgba(255,255,255,.20) !important;
-  border: 1px solid rgba(255,255,255,.30) !important;
-}
-/* 유리 카드 내부 텍스트 — 그림자로 가독성 확보 */
-.card > *, .wellness-card > *, .privacy-card > *, .care-card > *,
-.brain-balance-card > *, .rg-card > *, .hero > * {
-  text-shadow: 0 1px 4px rgba(10, 40, 80, .35) !important;
-}
-.bbc-title, .bbc-desc, .card-title, .card-sub, .hero-title, .hero-sub {
-  color: #FFFFFF !important;
-  text-shadow: 0 1px 5px rgba(10, 40, 80, .40) !important;
-}
-/* 유리 카드 안의 항목 행(낙상 위험도 평가 등) — 배경 진하게 + 흰 글씨 */
-.bbc-item, .bbc-feature, .care-item, .feature-row, .list-row {
-  background: rgba(255,255,255,.22) !important;
-  border: 1px solid rgba(255,255,255,.26) !important;
-  border-radius: 14px !important;
-  color: #FFFFFF !important;
-}
-.bbc-item *, .bbc-feature *, .care-item * {
-  color: #FFFFFF !important;
-  text-shadow: 0 1px 3px rgba(10,40,80,.45) !important;
-  font-weight: 700 !important;
-}
-/* 유리 카드 안의 CTA 버튼 — 진한 파랑으로 확실히 */
-.bbc-cta, .care-cta, .card .btn-primary, .privacy-card .btn-primary {
-  background: rgba(255,255,255,.30) !important;
-  color: #FFFFFF !important;
-  border: 1px solid rgba(255,255,255,.42) !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 4px rgba(10,40,80,.45) !important;
-}
-
-/* 홈 상단 "기본 정보 입력하기" 등 진한 버튼 유지 */
-.basic-info-cta, .bic-btn {
-  background: #2D7CFF !important;
-  color: #FFFFFF !important;
-  border: none !important;
-  text-shadow: none !important;
-  font-weight: 800 !important;
-}
-
-/* NEW 배지 */
-.new-badge, .badge-new {
-  background: #7C3AED !important;
-  color: #FFFFFF !important;
-  text-shadow: none !important;
-  border: none !important;
-}
-
-/* ─────────────────────────────────────────────────────────
-   ④ 서브 헤더 (오늘의 감정 / 반응속도 검사 등)
-   ───────────────────────────────────────────────────────── */
+/* 서브 헤더 (오늘의 감정 / 반응속도 검사) — 밝은 배경 + 어두운 글씨 */
 .sub-hd, .page-hd, .bt-hd, .measure-hd, .mood-hd {
-  background: rgba(255,255,255,.88) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  backdrop-filter: blur(12px) !important;
-}
+  background: rgba(255,255,255,.90) !important;
+  -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important; }
 .sub-hd *, .page-hd *, .bt-hd *, .measure-hd *, .mood-hd * {
-  color: #1A2B45 !important;
-  text-shadow: none !important;
-}
-.sub-hd small, .page-hd small, .bt-hd small, .mood-hd small,
-.sub-hd .sub, .page-hd .sub { color: #4B5563 !important; }
+  color: var(--dark) !important; text-shadow: none !important; }
+.sub-hd small, .page-hd small, .bt-hd small, .mood-hd small { color: var(--dark2) !important; }
+
+/* 하단 네비 */
+.bottom-nav, .tabbar, .nav-bar {
+  background: rgba(12, 50, 95, .45) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  border-top: 1px solid rgba(255,255,255,.32) !important; }
+.nav-btn { color: var(--ink2) !important; background: transparent !important; }
+.nav-btn.on { color: var(--ink) !important; }
+.nav-label { color: inherit !important; text-shadow: var(--sh) !important; font-weight: 700 !important; }
+.nav-btn.on::before { background: var(--ink) !important; }
+
+/* ══════════════════════════════════════════════════════
+   F. 공통 요소
+   ══════════════════════════════════════════════════════ */
+/* 진행바 */
+.progress, .bar, .gauge-bg, .progress-bg, .integrated-progress {
+  background: rgba(10, 45, 85, .40) !important; border-radius: 999px !important; }
+.progress-fill, .bar-fill, .gauge-fill { background: rgba(255,255,255,.92) !important; }
+.integrated-progress-fill { background: #7C3AED !important; }
+.integrated-step-count { color: var(--ink) !important; text-shadow: var(--sh) !important; font-weight: 700 !important; }
+
+/* 입력창 */
+input:not([type=range]), select, textarea {
+  background: rgba(10, 45, 85, .38) !important;
+  border: 1px solid rgba(255,255,255,.28) !important;
+  border-radius: 14px !important; color: var(--ink) !important; }
+input::placeholder, textarea::placeholder { color: rgba(255,255,255,.70) !important; }
+/* 흰 카드 안 입력창은 어둡게 */
+.modal-card input, .feedback-card textarea, .privacy-card input {
+  background: #F7F9FC !important; color: var(--dark) !important;
+  border: 1px solid rgba(15,23,42,.12) !important; }
+.modal-card input::placeholder, .feedback-card textarea::placeholder,
+.privacy-card input::placeholder { color: #9AA5B1 !important; }
+
+/* 배지 — 인라인 색 있으면 유지, 없으면 유리 */
+.badge:not([style*="background"]), .chip:not([style*="background"]),
+.tag:not([style*="background"]) {
+  background: rgba(10, 45, 85, .45) !important; color: var(--ink) !important;
+  border: 1px solid rgba(255,255,255,.42) !important; border-radius: 999px !important;
+  text-shadow: var(--sh) !important; }
+.new-badge { background: #7C3AED !important; color: #fff !important;
+  border: none !important; text-shadow: none !important; }
+
+/* 팝업 오버레이 */
+.modal, .beta-modal, .inapp-modal, .badge-modal, .feedback-modal {
+  background: rgba(8,35,70,.58) !important;
+  -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important; }
+
+/* 토글 */
+.privacy-switch { background: rgba(255,255,255,.35) !important; }
+.privacy-optout-label input:checked ~ .privacy-switch { background: rgba(255,255,255,.85) !important; }
+.privacy-switch::after { background: #2E7FD0 !important; }
+
+/* 캔버스(파형) */
+canvas { border-radius: 16px !important; background: rgba(10,30,60,.32) !important; }
+
+/* 링크 */
+a { color: var(--ink) !important; text-shadow: var(--sh) !important; }
+.modal-card a, .integrated-step-card a, .mood-intro a {
+  color: #2D7CFF !important; text-shadow: none !important; }
+
+::-webkit-scrollbar { width: 0 !important; }
 </style>
 </head>
 <body>
@@ -12068,12 +11642,12 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v26.3 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.0 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
 <div class="page on" id="page-home">
-  <!-- ★ v26.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
+  <!-- ★ v27.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
   <div id="home-hero-dynamic"></div>
 
   <div class="hero" id="home-hero-default">
@@ -13347,7 +12921,7 @@ a, .link { color: var(--ink) !important; text-decoration-color: var(--ink-3) !im
     <span style="color:#9ca3af">⚠️ 본 앱은 의료기기가 아닌 건강 참고용 도구입니다.</span>
   </div>
 
-  v26.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
+  v27.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
   ✉ Reset Button 
 </footer>
 
