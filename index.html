@@ -11775,6 +11775,77 @@ a { color: var(--ink) !important; text-shadow: var(--sh) !important; }
   color: #4B5563 !important;
   text-shadow: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v27.2 — 클릭 보장 + 유리카드 색글씨 → 흰색
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── ① 클릭(터치) 보장: 모든 버튼/인터랙션 요소 ──────── */
+button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
+.mood-start-btn, .mood-history-btn, .m-btn, .bbc-cta, .nav-btn {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 2;
+}
+/* 감정 단계 카드 + 그리드 확실히 클릭 가능하게 */
+.integrated-step-card, .mood-quick-section, .quickf-grid, .quickc-grid,
+#mood-container, #mood-container * {
+  pointer-events: auto !important;
+}
+.quickf-grid, .quickc-grid { position: relative; z-index: 2; }
+/* 표정/색상 버튼 자식(이모지·라벨)이 클릭 가로채지 않게 */
+.quickf-btn *, .quickc-btn * { pointer-events: none !important; }
+.quickf-btn, .quickc-btn { pointer-events: auto !important; cursor: pointer !important; }
+
+/* ── ② 유리 카드(하늘/청록 배경) 안의 색깔 글씨 → 흰색 ── */
+/* 초록/파랑/검정 글씨가 청록 배경에 묻히는 문제 해결 */
+.card .mood-card-title, .card .mood-card-sub, .card .mood-card-game-name,
+.wellness-card [style*="color:#059669"], .wellness-card [style*="color:#10B981"],
+.card [style*="color:#059669"], .card [style*="color:#10B981"],
+.card [style*="color:#2D7CFF"], .card [style*="color:#2563EB"],
+.mood-card-v2 *, .rg-card .rg-comment,
+.card h1, .card h2, .card h3, .card .title, .card .subtitle {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.5) !important;
+}
+
+/* "오늘은 이미 마음을 비춰봤어요" 등 완료 카드 텍스트 */
+.mood-done-card, .mood-card-done, .already-measured {
+  color: #FFFFFF !important;
+}
+.mood-done-card *, .mood-card-done *, .already-measured * {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.5) !important;
+}
+.mood-card-title { color: #FFFFFF !important; font-weight: 800 !important; }
+.mood-card-icon, .mood-card-game-name { color: #14243D !important; }
+
+/* "다시 측정하거나 결과 보기" 칩 버튼 — 흰 배경 + 진한 글씨 */
+.mood-card-game, .mood-card-chip {
+  background: rgba(255,255,255,.90) !important;
+  border-radius: 999px !important;
+}
+.mood-card-game .mood-card-game-name, .mood-card-chip * {
+  color: #1E40AF !important;
+  text-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+/* 유리 카드 안 초록/파랑 배지·라벨 → 대비 확보 */
+.card .badge:not([style*="background"]), .wellness-card .label {
+  color: #FFFFFF !important;
+}
+
+/* ── ③ 초록 배경 배지/버튼 위 글씨는 흰색 유지 (원래 정상) ── */
+.body-badge, .body-btn, .bal-badge, .bal-btn, .post-badge {
+  color: #FFFFFF !important;
+}
+/* 단, 연초록 반투명 배경(rg-badge.normal)의 초록 글씨는 진하게 */
+.rg-badge.normal {
+  background: rgba(6,95,70,.25) !important;
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(8,35,70,.4) !important;
+}
 </style>
 </head>
 <body>
@@ -11794,7 +11865,7 @@ a { color: var(--ink) !important; text-shadow: var(--sh) !important; }
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.1 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.2 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
