@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#3480BE">
+<meta name="theme-color" content="#3A87C4">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11343,11 +11343,11 @@ body::before {
 
 :root {
   /* ★ v27.1: 배경을 진하게 → 흰 글씨 대비 확보 (WCAG 4.5:1) */
-  --sky-a: #3E8CC4;
-  --sky-b: #3480BE;
-  --sky-c: #368D84;
-  --sky-d: #2E77BE;
-  --sky-e: #1E5FA8;
+  --sky-a: #4593CB;
+  --sky-b: #3A87C4;
+  --sky-c: #3D948B;
+  --sky-d: #327FC4;
+  --sky-e: #2266AE;
   /* ★ v27.2: 카드를 어두운 반투명으로 → 흰 글씨 대비 확실히 확보 (WCAG 통과) */
   --glass:      rgba(18, 60, 105, .42);
   --glass-soft: rgba(18, 60, 105, .32);
@@ -11623,6 +11623,158 @@ a { color: var(--ink) !important; text-shadow: var(--sh) !important; }
   color: #2D7CFF !important; text-shadow: none !important; }
 
 ::-webkit-scrollbar { width: 0 !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v27.1 — 밝은 배경 카드 내부 글씨 대비 보정
+   문제: 연분홍/연노랑/흰색 카드 안의 연회색 글씨가 안 보임
+   해결: 밝은 카드는 배경 유지 + 내부 글씨를 확실히 진하게
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 밝은 배경 카드 (원래 색 유지, 테마 개입 금지) ────── */
+.finger-result, .finger-result-card, .arr-card, .crisis-card,
+.mood-result-card, .emotion-result-hero, .care-card-inner,
+.res-card, .res-section, .rs-card, .peer-card, .ppg-sum-card,
+[class*="result"][style*="linear-gradient"],
+.measure-card-game, .bc-reaction, .bc-balance, .bc-gait {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* ── 밝은 카드 안 모든 텍스트 = 진한 남색 (기본) ──────── */
+.finger-result *, .finger-result-card *, .arr-card *, .crisis-card *,
+.mood-result-card *, .res-card *, .res-section *, .peer-card *,
+.ppg-sum-card *, .rs-card * {
+  text-shadow: none !important;
+}
+
+/* ── 연한 회색 계열 → 확실히 읽히는 회색으로 상향 ─────── */
+/* 기존 #94A3B8, #9CA3AF, #CBD5E1 등이 밝은 배경에서 안 보임 */
+.res-card .sub, .res-section .sub, .rs-sub, .res-sec-sub,
+.peer-baseline, .arr-note, .arr-disclaimer, .fr-note,
+.finger-result small, .arr-card small, .res-card small,
+.metric-sub, .stat-sub, .item-sub, .card-note {
+  color: #52606D !important;   /* 명암비 7:1 이상 */
+}
+
+/* SD1/SD2 지표 줄 (부정맥 카드) */
+.arr-metrics, .arr-metrics *, .hrv-metrics, .hrv-metrics * {
+  color: #374151 !important;
+  background: rgba(255,255,255,.75) !important;
+  border-radius: 10px !important;
+}
+
+/* 상담 전화 링크 (연노랑 카드) — 확실히 진하게 */
+.crisis-link, .crisis-card a, a[href^="tel:"] {
+  color: #7C2D12 !important;
+  background: rgba(255,255,255,.82) !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+  border-radius: 12px !important;
+}
+.crisis-card, .crisis-box {
+  background: linear-gradient(135deg,#FFF7E6 0%,#FFE9D6 100%) !important;
+  border: 2px solid #F59E0B !important;
+}
+.crisis-card *, .crisis-box * { color: #78350F !important; }
+.crisis-title { color: #7C2D12 !important; font-weight: 800 !important; }
+.crisis-note, .crisis-card em { color: #92400E !important; }
+
+/* ── 진행바/게이지 위 숫자 ──────────────────────────── */
+.res-bar-val, .bar-value, .score-num-inline {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.45) !important;
+  font-weight: 800 !important;
+}
+
+/* ── 결과 페이지 섹션 제목/부제 ─────────────────────── */
+.res-sec-title, .section-title {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 5px rgba(8,35,70,.55) !important;
+  font-weight: 800 !important;
+}
+.res-sec-sub, .section-sub, .sec-sub {
+  color: rgba(255,255,255,.92) !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.55) !important;
+}
+
+/* "평소 대비 분석 준비 중" 같은 점선 안내 박스 */
+.res-empty, .empty-box, .placeholder-box, .coming-soon {
+  background: rgba(10,45,85,.34) !important;
+  border: 1px dashed rgba(255,255,255,.42) !important;
+  border-radius: 16px !important;
+}
+.res-empty *, .empty-box *, .placeholder-box * {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.5) !important;
+}
+.res-empty .title, .empty-box .title { font-weight: 800 !important; }
+.res-empty .desc, .empty-box .desc { color: rgba(255,255,255,.88) !important; }
+
+/* ── 흰 카드 안 지표 리스트 (회복력/자기인식 등) ─────── */
+.mental-grid, .mental-item, .metric-grid, .metric-item {
+  background: transparent !important;
+}
+.mental-item *, .metric-item * { text-shadow: none !important; }
+.mental-label, .metric-label { color: #14243D !important; font-weight: 700 !important; }
+.mental-sub, .metric-desc { color: #52606D !important; }
+
+/* ── PPG 실시간 신호 카드 (어두운 배경 유지) ─────────── */
+.ppg-live-card, .finger-wave-card {
+  background: #1A0A0A !important;
+  border: 1px solid rgba(255,100,100,.35) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.ppg-live-card *, .finger-wave-card * {
+  color: #FFB3B3 !important;
+  text-shadow: none !important;
+}
+.ppg-live-title { color: #FF8888 !important; font-weight: 800 !important; }
+
+/* 측정 중 심박수/진행률 타일 */
+.fls-card, .live-stat {
+  background: rgba(10,45,85,.45) !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+}
+.fls-label, .live-stat-label {
+  color: rgba(255,255,255,.92) !important;
+  text-shadow: 0 1px 3px rgba(8,35,70,.5) !important;
+  font-weight: 700 !important;
+}
+.fls-val, .live-stat-val {
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 4px rgba(8,35,70,.5) !important;
+}
+
+/* ── 홈/결과 버튼 3종 (홈·다시·일지) ─────────────────── */
+.rb-home, .rb-retry, .rb-journal, .result-btn {
+  font-weight: 800 !important;
+  text-shadow: none !important;
+}
+.rb-home, .rb-retry {
+  background: #FFFFFF !important;
+  color: #14243D !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+}
+.rb-journal {
+  background: #7C3AED !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+.rb-home *, .rb-retry * { color: #14243D !important; }
+.rb-journal * { color: #FFFFFF !important; }
+
+/* ── 하단 면책 문구 (흰 반투명 박스) ────────────────── */
+.disclaimer-box, .final-note {
+  background: rgba(255,255,255,.88) !important;
+  border-radius: 14px !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.disclaimer-box *, .final-note * {
+  color: #4B5563 !important;
+  text-shadow: none !important;
+}
 </style>
 </head>
 <body>
@@ -11642,7 +11794,7 @@ a { color: var(--ink) !important; text-shadow: var(--sh) !important; }
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.0 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.1 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
