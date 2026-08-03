@@ -316,6 +316,8 @@ tbody td{padding:10px 14px;font-size:13px;color:var(--text2)}
   <div class="sb-section">분석</div>
   <div class="sb-item" onclick="goPage('analytics',this)"><i class="ti ti-chart-line"></i>측정 분석</div>
   <div class="sb-item" onclick="goPage('users',this)"><i class="ti ti-users"></i>사용자 현황</div>
+  <div class="sb-item" onclick="goPage('care',this)"><i class="ti ti-heart-handshake"></i>돌봄 알림</div>
+  <div class="sb-item" onclick="goPage('report',this)"><i class="ti ti-file-text"></i>월간 보고서</div>
 
   <div class="sb-section">시스템</div>
   <div class="sb-item" onclick="goPage('integration',this)"><i class="ti ti-plug"></i>앱 연동 설정</div>
@@ -484,6 +486,74 @@ tbody td{padding:10px 14px;font-size:13px;color:var(--text2)}
 
     <!-- ── 납품 기관 ── -->
     <!-- ── 연동 설정 ── -->
+    
+    <!-- ★ v29.0 ⑤ 돌봄 알림 -->
+    <div class="page" id="page-care">
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-top"><div class="kpi-icon" style="background:rgba(45,124,255,.15)"><i class="ti ti-users" style="color:var(--blue2);font-size:20px"></i></div></div>
+          <div class="kpi-val" id="care-total">—</div><div class="kpi-label">관리 대상</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><div class="kpi-icon" style="background:rgba(245,158,11,.15)"><i class="ti ti-clock-exclamation" style="color:#f59e0b;font-size:20px"></i></div></div>
+          <div class="kpi-val" id="care-inactive3">—</div><div class="kpi-label">3일 이상 미측정</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><div class="kpi-icon" style="background:rgba(239,68,68,.15)"><i class="ti ti-alert-triangle" style="color:#ef4444;font-size:20px"></i></div></div>
+          <div class="kpi-val" id="care-inactive7">—</div><div class="kpi-label">7일 이상 미측정</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-top"><div class="kpi-icon" style="background:rgba(139,92,246,.15)"><i class="ti ti-mood-sad" style="color:#8b5cf6;font-size:20px"></i></div></div>
+          <div class="kpi-val" id="care-mooddown">—</div><div class="kpi-label">마음 지표 하락</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-bell-ringing"></i> 확인이 필요한 분</div>
+          <div class="card-sub">미측정 기간이 길거나 마음 지표가 낮아진 분입니다</div>
+        </div>
+        <div class="table-wrap">
+          <table class="tbl">
+            <thead><tr><th>측정자</th><th>상태</th><th>마지막 측정</th><th>누적 측정</th><th>조치</th></tr></thead>
+            <tbody id="care-tbody"><tr><td colspan="5"><div class="empty-state"><i class="ti ti-inbox"></i><p>데이터를 불러오는 중…</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-info-circle"></i> 안내</div>
+        </div>
+        <div style="padding:16px;font-size:13px;line-height:1.7;color:var(--text2)">
+          · <strong>3일 이상 미측정</strong>: 안부 확인이 권장되는 상태입니다.<br>
+          · <strong>7일 이상 미측정</strong>: 우선 연락 대상입니다.<br>
+          · <strong>마음 지표 하락</strong>: 최근 감정 측정 점수가 낮아진 분입니다.<br>
+          · 이 지표는 <strong>참고용</strong>이며, 의학적 판단이 아닙니다. 실제 상태는 직접 확인해 주세요.
+        </div>
+      </div>
+    </div>
+
+    <!-- ★ v29.0 ⑤ 월간 보고서 -->
+    <div class="page" id="page-report">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-file-text"></i> 월간 실적 보고서</div>
+          <div class="card-sub">기관 제출용 요약을 생성합니다</div>
+        </div>
+        <div style="padding:16px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+            <button class="btn" onclick="buildReport(30)"><i class="ti ti-calendar"></i> 최근 30일</button>
+            <button class="btn" onclick="buildReport(90)"><i class="ti ti-calendar"></i> 최근 90일</button>
+            <button class="btn btn-primary" onclick="printReport()"><i class="ti ti-printer"></i> 인쇄 / PDF 저장</button>
+          </div>
+          <div id="report-body" style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px">
+            <div class="empty-state"><i class="ti ti-file"></i><p>기간을 선택하면 보고서가 생성됩니다</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-integration">
       <div class="setting-group">
         <div class="chart-title" style="margin-bottom:14px">📡 앱 → 대시보드 연동 방법</div>
@@ -619,7 +689,7 @@ function logout() {
 // ════════════════════════════════════════════════════════════════
 const PAGE_TITLES = {
   overview:'대시보드', realtime:'실시간 현황', analytics:'측정 분석',
-  users:'사용자 현황', orgs:'납품 기관', integration:'앱 연동 설정', settings:'설정'
+  users:'사용자 현황', care:'돌봄 알림', report:'월간 보고서', orgs:'납품 기관', integration:'앱 연동 설정', settings:'설정'
 };
 
 function goPage(id, el) {
@@ -763,6 +833,7 @@ function mkDoughnut(id, labels, data, colors) {
 function renderOverview(data) {
   const d = data || DEMO;
   window.__lastStats = d; // ★ v24.7: 실제 데이터 전역 저장 (다른 페이지 공유)
+  try { renderCarePage(d); } catch (e) { console.warn('care render:', e); } // ★ v29.0
 
   // KPIs
   document.getElementById('kpi-total').textContent = d.totals.measurements.toLocaleString();
@@ -843,6 +914,122 @@ function renderUsersTable(users) {
       <td>${topCats||'—'}</td>
     </tr>`;
   }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ★ v29.0 ⑤ 돌봄 알림 + 월간 보고서
+// ══════════════════════════════════════════════════════════════
+function renderCarePage(d) {
+  const care = (d && d.care) || { total:0, inactive3:0, inactive7:0, moodDown:0, alerts:[] };
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v.toLocaleString(); };
+  set('care-total', care.total);
+  set('care-inactive3', care.inactive3);
+  set('care-inactive7', care.inactive7);
+  set('care-mooddown', care.moodDown);
+
+  const tbody = document.getElementById('care-tbody');
+  if (!tbody) return;
+  if (!care.alerts.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><i class="ti ti-circle-check" style="color:#22c55e"></i><p>확인이 필요한 분이 없습니다 👍</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = care.alerts.map(u => {
+    const name = u.label
+      ? `<span style="font-weight:700;color:var(--text)">${u.label}</span>`
+      : `<span style="font-family:monospace;font-size:12px;color:var(--text2)">${(u.code||'').slice(0,10)} <span style="color:var(--text3);font-style:italic">(익명)</span></span>`;
+    const badge = u.risk === 'high'
+      ? '<span style="background:rgba(239,68,68,.14);color:#dc2626;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700">우선 연락</span>'
+      : '<span style="background:rgba(245,158,11,.14);color:#b45309;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700">확인 권장</span>';
+    const days = u.daysSince == null ? '—' : (u.daysSince === 0 ? '오늘' : u.daysSince + '일 전');
+    return `<tr>
+      <td>${name}</td>
+      <td>${badge}</td>
+      <td style="font-size:13px;color:var(--text2)">${days}</td>
+      <td><span style="font-weight:800;color:var(--blue2)">${u.count || 0}</span>회</td>
+      <td><button class="btn" style="padding:6px 12px;font-size:12px" onclick="markContacted('${(u.label||u.code||'').replace(/'/g,"")}')">연락함</button></td>
+    </tr>`;
+  }).join('');
+}
+
+const CONTACT_KEY = 'yb_contacted';
+function markContacted(who) {
+  try {
+    const m = JSON.parse(localStorage.getItem(CONTACT_KEY) || '{}');
+    m[who] = Date.now();
+    localStorage.setItem(CONTACT_KEY, JSON.stringify(m));
+    alert(who + ' 연락 완료로 기록했습니다.');
+  } catch (e) { alert('기록 실패'); }
+}
+
+function buildReport(days) {
+  const d = window.__lastStats;
+  if (!d) { alert('데이터를 먼저 불러와 주세요.'); return; }
+  const now = new Date();
+  const from = new Date(Date.now() - days * 86400000);
+  const fmt = dt => `${dt.getFullYear()}. ${dt.getMonth()+1}. ${dt.getDate()}.`;
+  const daily = (d.daily || []).slice(-days);
+  const totalMeasure = daily.reduce((s,x) => s + (x.measurements||0), 0);
+  const activeDays = daily.filter(x => (x.measurements||0) > 0).length;
+  const care = d.care || {};
+  const cats = d.categories || {};
+  const catRows = Object.entries(cats).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1])
+    .map(([k,v]) => `<tr><td style="padding:7px 10px;border-bottom:1px solid #eee">${CAT_LABELS[k]||k}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${v}회</td></tr>`).join('');
+  const org = (localStorage.getItem('yb_admin_org') || '').trim();
+
+  document.getElementById('report-body').innerHTML = `
+    <div style="color:#111">
+      <div style="text-align:center;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid #111">
+        <div style="font-size:22px;font-weight:800;margin-bottom:6px">건강 측정 운영 실적 보고서</div>
+        ${org ? `<div style="font-size:15px;font-weight:600">${org}</div>` : ''}
+        <div style="font-size:13px;color:#555;margin-top:6px">${fmt(from)} ~ ${fmt(now)} (${days}일간)</div>
+      </div>
+
+      <div style="font-size:15px;font-weight:800;margin:18px 0 10px">1. 운영 요약</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee;width:55%">총 측정 건수</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${totalMeasure.toLocaleString()}건</td></tr>
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee">누적 이용자 수</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${(d.totals?.devices||0).toLocaleString()}명</td></tr>
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee">측정 실시 일수</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${activeDays}일 / ${days}일</td></tr>
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee">일평균 측정</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${activeDays? (totalMeasure/activeDays).toFixed(1):0}건</td></tr>
+      </table>
+
+      <div style="font-size:15px;font-weight:800;margin:22px 0 10px">2. 안부 확인 현황</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee;width:55%">관리 대상자</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${care.total||0}명</td></tr>
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee">3일 이상 미측정 (확인 권장)</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${care.inactive3||0}명</td></tr>
+        <tr><td style="padding:7px 10px;border-bottom:1px solid #eee">7일 이상 미측정 (우선 연락)</td>
+            <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${care.inactive7||0}명</td></tr>
+      </table>
+
+      <div style="font-size:15px;font-weight:800;margin:22px 0 10px">3. 측정 항목별 실적</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        ${catRows || '<tr><td style="padding:10px;color:#777">해당 기간 데이터 없음</td></tr>'}
+      </table>
+
+      <div style="margin-top:26px;padding-top:14px;border-top:1px solid #ddd;font-size:11.5px;color:#666;line-height:1.7">
+        · 본 보고서는 앱에서 수집된 <strong>익명 통계</strong>를 기반으로 자동 생성되었습니다.<br>
+        · 측정 결과는 건강 참고용이며 의학적 진단이 아닙니다.<br>
+        · 생성일시: ${now.toLocaleString('ko-KR')}
+      </div>
+    </div>`;
+}
+
+function printReport() {
+  const body = document.getElementById('report-body');
+  if (!body || body.querySelector('.empty-state')) { alert('먼저 기간을 선택해 보고서를 생성해주세요.'); return; }
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>운영 실적 보고서</title>
+    <meta charset="utf-8">
+    <style>body{font-family:-apple-system,'Malgun Gothic',sans-serif;padding:32px;max-width:760px;margin:0 auto}
+    @media print{body{padding:0}}</style></head><body>${body.innerHTML}</body></html>`);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
 }
 
 function renderRecentTable(events) {

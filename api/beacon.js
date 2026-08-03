@@ -137,8 +137,35 @@ async function getStats(days = 30) {
       if (ev.t > userMap[key].last) userMap[key].last = ev.t;
       if (ev.category) userMap[key].cats[ev.category] = (userMap[key].cats[ev.category] || 0) + 1;
     }
+    // ★ v29.0: 케어 지표 — 기관용 (미측정일수 / 마음 점수 추이)
+    const nowT = Date.now();
+    for (const k in userMap) {
+      const u = userMap[k];
+      u.daysSince = u.last ? Math.floor((nowT - u.last) / 86400000) : null;
+      // 위험도: 미측정 기간 + 마음 점수 하락
+      let risk = 'ok';
+      if (u.daysSince != null) {
+        if (u.daysSince >= 7) risk = 'high';
+        else if (u.daysSince >= 3) risk = 'watch';
+      }
+      if (u.moodTrend != null && u.moodTrend <= -10) risk = (risk === 'high') ? 'high' : 'watch';
+      u.risk = risk;
+    }
     result.users = Object.values(userMap).sort((a, b) => b.last - a.last).slice(0, 100);
-  } catch (_) { result.users = []; }
+
+    // ★ v29.0: 기관 케어 요약
+    const all = Object.values(userMap);
+    result.care = {
+      total: all.length,
+      inactive3: all.filter(u => u.daysSince != null && u.daysSince >= 3).length,
+      inactive7: all.filter(u => u.daysSince != null && u.daysSince >= 7).length,
+      moodDown: all.filter(u => u.moodTrend != null && u.moodTrend <= -10).length,
+      alerts: all.filter(u => u.risk === 'high' || u.risk === 'watch')
+                 .sort((a,b) => (b.daysSince||0) - (a.daysSince||0))
+                 .slice(0, 20)
+                 .map(u => ({ label: u.label, code: u.code, daysSince: u.daysSince, risk: u.risk, count: u.count })),
+    };
+  } catch (_) { result.users = []; result.care = { total:0, inactive3:0, inactive7:0, moodDown:0, alerts:[] }; }
 
   return result;
 }

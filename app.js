@@ -2209,6 +2209,22 @@ const App = {
     if (page === 'results') {
       this._renderResultsPage();
     }
+    // ★ v29.0: 신체 페이지 진입 시 두뇌 컨디션 카드 삽입
+    if (page === 'body') {
+      try { this._injectBrainCard(); } catch (e) { console.warn('[Brain] 카드 삽입 실패:', e.message); }
+    }
+    // ★ v29.0: 홈 진입 시 돌봄 루프 카드 삽입 + 미측정 리마인드
+    if (page === 'home') {
+      try { this._injectCareCard(); } catch (e) { console.warn('[Care] 카드 삽입 실패:', e.message); }
+      try {
+        const nudge = this._careCheckNudge();
+        if (nudge) {
+          setTimeout(() => {
+            this._toast && this._toast(`${nudge.days}일 동안 측정이 없었어요. 오늘 어떠세요? 🌿`);
+          }, 1500);
+        }
+      } catch (e) {}
+    }
     // ★ v14.2: 상세 분석 페이지 진입 시 렌더링
     if (page === 'detail') {
       this._renderDetailPage();
@@ -6285,6 +6301,9 @@ const App = {
           <div class="fm-row"><span>평균 IBI</span><span>${result.meanIBI}ms</span></div>
         </div>
 
+        <!-- ★ v29.0: 측정 신뢰도 카드 -->
+        ${this._buildTrustCard(result, 'finger')}
+
         <!-- ★ v18.0: 고급 PPG 분석 카드 (부정맥 리스크) — HTML 내부에 포함 -->
         <div id="finger-advanced-cards"></div>
 
@@ -9684,6 +9703,956 @@ const App = {
   // ★ v28.0 마음 추이 (Mind Trend) — 웨어러블이 만들 수 없는 시계열
   // 감정 궤적 + 요일/시간대 패턴 + 신체지표(HRV) 상관
   // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // ★ v29.0 ④ 측정 신뢰도를 사용자 언어로
+  // 이미 계산 중인 Elgendi SQI / 박동 일관성 / 채택률을 정직하게 노출
+  // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // ★ v29.0 ② 두뇌 컨디션 (인지 건강 선별)
+  //   - 시계 그리기(CDT) 디지털판: Shulman 2000 채점 개념 단순화
+  //   - 순서 기억(Corsi Block): Kessels 2000
+  //   - 단어 회상: Rey AVLT 축약
+  //   ※ "치매 검사"가 아니라 "오늘의 두뇌 컨디션" 톤 유지
+  // ══════════════════════════════════════════════════════════════
+  _brain: {
+    active: null,      // 'clock' | 'sequence' | 'recall'
+    stage: 0,
+    startedAt: 0,
+    clock: { targetH: 0, targetM: 0, placed: [], handH: null, handM: null },
+    seq: { level: 3, pattern: [], input: [], showing: false, maxLevel: 3, fails: 0 },
+    recall: { words: [], shown: false, answers: [], phase: 'learn' },
+    results: {},
+  },
+
+  // ── 두뇌 컨디션 페이지 DOM을 동적 생성 (HTML 무수정 원칙) ──
+  _brainEnsurePage() {
+    let page = document.getElementById('page-test-brain');
+    if (page) return page;
+    page = document.createElement('div');
+    page.className = 'page';
+    page.id = 'page-test-brain';
+    page.innerHTML = `
+      <div class="sub-hd">
+        <button class="integrated-back" type="button" onclick="App.cancelBrainTest()">←</button>
+        <div>
+          <div style="font-size:17px;font-weight:800">🧠 오늘의 두뇌 컨디션</div>
+          <div style="font-size:12px" class="sub">3가지 간단한 활동 · 약 3분</div>
+        </div>
+      </div>
+      <div id="brain-container" style="padding:16px;padding-bottom:100px"></div>
+    `;
+    document.body.appendChild(page);
+    return page;
+  },
+
+  startBrainTest() {
+    this._brainEnsurePage();
+    this._brain.active = 'intro';
+    this._brain.results = {};
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+    document.getElementById('page-test-brain').classList.add('on');
+    this.state.page = 'test-brain';
+    try { history.pushState({ page: 'test-brain' }, '', ''); } catch (e) {}
+    window.scrollTo(0, 0);
+    this._brainRenderIntro();
+    this._trackEvent && this._trackEvent('brain_start', {});
+  },
+
+  cancelBrainTest() {
+    this._brain.active = null;
+    if (this._brain._timer) { clearInterval(this._brain._timer); this._brain._timer = null; }
+    if (this._brain._to) { clearTimeout(this._brain._to); this._brain._to = null; }
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    this.goPage('body');
+  },
+
+  _brainRenderIntro() {
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    const last = this._brainGetLast();
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:22px;text-align:center">
+        <div style="font-size:52px;margin-bottom:10px">🧠</div>
+        <div class="integrated-step-title" style="font-size:21px;margin-bottom:8px">오늘의 두뇌 컨디션</div>
+        <div class="integrated-step-sub" style="font-size:14px;line-height:1.6;margin-bottom:16px">
+          기억력·집중력·공간감각을 간단한 활동으로 확인해요.<br>
+          <strong>정답을 맞히는 시험이 아니라</strong>, 오늘 컨디션을 보는 거예요.
+        </div>
+        <div class="mood-intro-tips" style="padding:15px;margin-bottom:16px;text-align:left">
+          <div class="mood-tip" style="font-size:13px;margin-bottom:8px">🕐 <strong>시계 그리기</strong> · 숫자와 바늘 놓기</div>
+          <div class="mood-tip" style="font-size:13px;margin-bottom:8px">🔢 <strong>순서 기억</strong> · 불빛 순서 따라하기</div>
+          <div class="mood-tip" style="font-size:13px">📝 <strong>단어 기억</strong> · 잠시 후 떠올리기</div>
+        </div>
+        ${last ? `<div class="brain-last">지난 기록: <strong>${last.brainAge}세 수준</strong> · ${this._brainAgo(last.t)}</div>` : ''}
+        <button class="mood-start-btn" style="width:100%;padding:15px;margin-bottom:9px" onclick="App._brainStartClock()">
+          시작하기 →
+        </button>
+        <button class="mood-history-btn" style="width:100%;padding:13px" onclick="App.cancelBrainTest()">나중에 할게요</button>
+        <div style="font-size:11px;color:#6B7684;margin-top:12px;line-height:1.5">
+          ※ 이 활동은 의학적 진단이 아니며, 인지 건강을 스스로 살펴보는 참고 자료입니다.
+        </div>
+      </div>`;
+    this._speak('오늘의 두뇌 컨디션을 확인해 볼게요. 시험이 아니니 편하게 하시면 됩니다.');
+  },
+
+  _brainAgo(t) {
+    const d = Math.floor((Date.now() - t) / 86400000);
+    if (d <= 0) return '오늘';
+    if (d === 1) return '어제';
+    if (d < 30) return `${d}일 전`;
+    return `${Math.floor(d/30)}개월 전`;
+  },
+
+  _brainGetLast() {
+    try {
+      const h = JSON.parse(localStorage.getItem('history_brain') || '[]');
+      return h.length ? h[h.length-1] : null;
+    } catch (e) { return null; }
+  },
+
+  // ─────────────────────────────────────────
+  // 1) 시계 그리기 (CDT) — 숫자 배치 + 시각 설정
+  // ─────────────────────────────────────────
+  _brainStartClock() {
+    const b = this._brain;
+    b.active = 'clock';
+    b.startedAt = performance.now();
+    // 목표 시각 (임상 CDT는 보통 11시 10분)
+    const opts = [[11,10],[8,20],[3,45],[9,15]];
+    const pick = opts[Math.floor(Math.random()*opts.length)];
+    b.clock = { targetH: pick[0], targetM: pick[1], handH: null, handM: null };
+    this._brainRenderClock();
+    this._speak(`시계를 만들어 주세요. ${pick[0]}시 ${pick[1]}분이 되도록 짧은 바늘과 긴 바늘을 놓아주세요.`);
+  },
+
+  _brainRenderClock() {
+    const b = this._brain.clock;
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    // 12개 숫자 위치 버튼 (시계 눈금)
+    const nums = [];
+    for (let i = 1; i <= 12; i++) {
+      const ang = (i * 30 - 90) * Math.PI / 180;
+      const x = 50 + Math.cos(ang) * 38;
+      const y = 50 + Math.sin(ang) * 38;
+      nums.push(`<div class="bclock-num" style="left:${x}%;top:${y}%">${i}</div>`);
+    }
+    const handAngle = (v, isHour) => isHour
+      ? ((v % 12) * 30 + (b.handM != null ? b.handM * 0.5 : 0) - 90)
+      : (v * 6 - 90);
+    const hh = b.handH != null ? `<line class="bclock-hand hour" x1="50" y1="50"
+        x2="${50 + Math.cos(handAngle(b.handH,true)*Math.PI/180)*24}"
+        y2="${50 + Math.sin(handAngle(b.handH,true)*Math.PI/180)*24}" />` : '';
+    const mm = b.handM != null ? `<line class="bclock-hand min" x1="50" y1="50"
+        x2="${50 + Math.cos(handAngle(b.handM,false)*Math.PI/180)*34}"
+        y2="${50 + Math.sin(handAngle(b.handM,false)*Math.PI/180)*34}" />` : '';
+
+    const hourBtns = Array.from({length:12}, (_,i) => i+1).map(h =>
+      `<button class="bpick ${b.handH===h?'on':''}" onclick="App._brainSetHand('h',${h})">${h}</button>`).join('');
+    const minBtns = [0,5,10,15,20,25,30,35,40,45,50,55].map(m =>
+      `<button class="bpick ${b.handM===m?'on':''}" onclick="App._brainSetHand('m',${m})">${String(m).padStart(2,'0')}</button>`).join('');
+
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:20px">
+        <div class="bstep">1 / 3 · 시계 만들기</div>
+        <div class="integrated-step-title" style="font-size:19px;text-align:center;margin-bottom:6px">
+          🕐 ${b.targetH}시 ${b.targetM}분에 맞춰주세요
+        </div>
+        <div class="integrated-step-sub" style="font-size:13px;text-align:center;margin-bottom:14px">
+          짧은 바늘(시)과 긴 바늘(분)을 각각 골라주세요
+        </div>
+        <div class="bclock-wrap">
+          <div class="bclock-face">
+            ${nums.join('')}
+            <svg viewBox="0 0 100 100" class="bclock-svg">
+              <circle cx="50" cy="50" r="44" class="bclock-circle"/>
+              ${mm}${hh}
+              <circle cx="50" cy="50" r="3" class="bclock-center"/>
+            </svg>
+          </div>
+        </div>
+        <div class="bpick-label">짧은 바늘 (시)</div>
+        <div class="bpick-grid">${hourBtns}</div>
+        <div class="bpick-label">긴 바늘 (분)</div>
+        <div class="bpick-grid">${minBtns}</div>
+        <button class="mood-start-btn" style="width:100%;padding:15px;margin-top:16px"
+                onclick="App._brainSubmitClock()" ${(b.handH==null||b.handM==null)?'disabled':''}>
+          ${(b.handH==null||b.handM==null) ? '바늘을 모두 놓아주세요' : '다음 →'}
+        </button>
+      </div>`;
+  },
+
+  _brainSetHand(which, val) {
+    if (which === 'h') this._brain.clock.handH = val;
+    else this._brain.clock.handM = val;
+    this._brainRenderClock();
+  },
+
+  _brainSubmitClock() {
+    const b = this._brain.clock;
+    if (b.handH == null || b.handM == null) return;
+    const sec = (performance.now() - this._brain.startedAt) / 1000;
+    // 채점: 시 정확(50) + 분 정확(50), 근사 부분점수
+    let score = 0;
+    if (b.handH === b.targetH) score += 50;
+    else if (Math.abs(b.handH - b.targetH) === 1 || Math.abs(b.handH - b.targetH) === 11) score += 20;
+    if (b.handM === b.targetM) score += 50;
+    else if (Math.abs(b.handM - b.targetM) <= 5) score += 25;
+    this._brain.results.clock = {
+      score, sec: Math.round(sec),
+      correct: (b.handH === b.targetH && b.handM === b.targetM),
+      target: `${b.targetH}:${String(b.targetM).padStart(2,'0')}`,
+      given: `${b.handH}:${String(b.handM).padStart(2,'0')}`,
+    };
+    this._brainStartSequence();
+  },
+
+  // ─────────────────────────────────────────
+  // 2) 순서 기억 (Corsi Block Tapping)
+  // ─────────────────────────────────────────
+  _brainStartSequence() {
+    const b = this._brain;
+    b.active = 'sequence';
+    b.seq = { level: 3, pattern: [], input: [], showing: false, maxLevel: 2, fails: 0 };
+    this._brainNextSequence();
+  },
+
+  _brainNextSequence() {
+    const s = this._brain.seq;
+    s.pattern = [];
+    s.input = [];
+    const used = {};
+    while (s.pattern.length < s.level) {
+      const n = Math.floor(Math.random() * 9);
+      if (!used[n] || s.pattern.length >= 9) { used[n] = 1; s.pattern.push(n); }
+    }
+    this._brainRenderSequence(true);
+    this._speak(`불빛이 켜지는 순서를 기억했다가 똑같이 눌러주세요. ${s.level}개입니다.`);
+    // 순차 점등
+    s.showing = true;
+    let i = 0;
+    const step = () => {
+      if (this._brain.active !== 'sequence') return;
+      const cells = document.querySelectorAll('.bseq-cell');
+      cells.forEach(c => c.classList.remove('lit'));
+      if (i < s.pattern.length) {
+        const cell = cells[s.pattern[i]];
+        if (cell) {
+          cell.classList.add('lit');
+          if (navigator.vibrate) navigator.vibrate(40);
+        }
+        i++;
+        this._brain._to = setTimeout(() => {
+          document.querySelectorAll('.bseq-cell').forEach(c => c.classList.remove('lit'));
+          this._brain._to = setTimeout(step, 220);
+        }, 520);
+      } else {
+        s.showing = false;
+        this._brainRenderSequence(false);
+      }
+    };
+    this._brain._to = setTimeout(step, 800);
+  },
+
+  _brainRenderSequence(showing) {
+    const s = this._brain.seq;
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    const cells = Array.from({length:9}, (_,i) =>
+      `<button class="bseq-cell" data-i="${i}" ${showing?'disabled':''}
+               onclick="App._brainSeqTap(${i})"></button>`).join('');
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:20px">
+        <div class="bstep">2 / 3 · 순서 기억</div>
+        <div class="integrated-step-title" style="font-size:19px;text-align:center;margin-bottom:6px">
+          🔢 ${showing ? '잘 보세요' : '순서대로 눌러주세요'}
+        </div>
+        <div class="integrated-step-sub" style="font-size:13px;text-align:center;margin-bottom:6px">
+          ${showing ? `${s.level}개의 불빛이 순서대로 켜집니다` : `${s.input.length} / ${s.level} 개 입력`}
+        </div>
+        <div class="bseq-level">단계 ${s.level - 2} · ${s.level}개</div>
+        <div class="bseq-grid">${cells}</div>
+        ${!showing ? `<button class="mood-history-btn" style="width:100%;padding:13px;margin-top:14px"
+            onclick="App._brainSeqGiveUp()">기억이 안 나요</button>` : ''}
+      </div>`;
+  },
+
+  _brainSeqTap(i) {
+    const s = this._brain.seq;
+    if (s.showing) return;
+    s.input.push(i);
+    const cells = document.querySelectorAll('.bseq-cell');
+    if (cells[i]) {
+      cells[i].classList.add('tapped');
+      setTimeout(() => cells[i] && cells[i].classList.remove('tapped'), 200);
+    }
+    if (navigator.vibrate) navigator.vibrate(25);
+
+    // 즉시 오답 판정
+    const idx = s.input.length - 1;
+    if (s.input[idx] !== s.pattern[idx]) {
+      s.fails++;
+      if (s.fails >= 2 || s.level <= 3) return this._brainFinishSequence();
+      this._speak('괜찮아요. 한 번 더 해볼게요.');
+      this._brain._to = setTimeout(() => this._brainNextSequence(), 700);
+      return;
+    }
+    if (s.input.length === s.pattern.length) {
+      s.maxLevel = Math.max(s.maxLevel, s.level);
+      if (s.level >= 7) return this._brainFinishSequence();
+      s.level++;
+      this._speak('잘하셨어요. 하나 더 늘려볼게요.');
+      this._brain._to = setTimeout(() => this._brainNextSequence(), 700);
+    } else {
+      this._brainRenderSequence(false);
+    }
+  },
+
+  _brainSeqGiveUp() {
+    this._brain.seq.fails = 2;
+    this._brainFinishSequence();
+  },
+
+  _brainFinishSequence() {
+    const s = this._brain.seq;
+    // Corsi span 정상 범위: 5±1 (Kessels 2000)
+    const span = s.maxLevel;
+    let score = Math.round(Math.max(0, Math.min(100, ((span - 2) / 5) * 100)));
+    this._brain.results.sequence = { span, score };
+    this._brainStartRecall();
+  },
+
+  // ─────────────────────────────────────────
+  // 3) 단어 회상 (Rey AVLT 축약)
+  // ─────────────────────────────────────────
+  _brainWordSets: [
+    ['사과','의자','바다','연필','강아지'],
+    ['버스','수건','나무','시계','우산'],
+    ['빵','창문','구름','신발','열쇠'],
+    ['꽃','책상','달빛','컵','고양이'],
+  ],
+
+  _brainStartRecall() {
+    const b = this._brain;
+    b.active = 'recall';
+    const set = this._brainWordSets[Math.floor(Math.random()*this._brainWordSets.length)];
+    b.recall = { words: set, answers: [], phase: 'learn', shownAt: Date.now() };
+    this._brainRenderRecallLearn();
+  },
+
+  _brainRenderRecallLearn() {
+    const r = this._brain.recall;
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    let idx = 0;
+    const showWord = () => {
+      if (this._brain.active !== 'recall') return;
+      if (idx >= r.words.length) {
+        this._brainRenderRecallDistract();
+        return;
+      }
+      c.innerHTML = `
+        <div class="integrated-step-card" style="padding:20px;text-align:center">
+          <div class="bstep">3 / 3 · 단어 기억</div>
+          <div class="integrated-step-sub" style="font-size:13px;margin-bottom:20px">
+            5개의 단어를 기억해 주세요 (${idx+1}/${r.words.length})
+          </div>
+          <div class="bword">${r.words[idx]}</div>
+        </div>`;
+      this._speak(r.words[idx]);
+      idx++;
+      this._brain._to = setTimeout(showWord, 1700);
+    };
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:20px;text-align:center">
+        <div class="bstep">3 / 3 · 단어 기억</div>
+        <div class="integrated-step-title" style="font-size:19px;margin-bottom:8px">📝 단어를 기억해 주세요</div>
+        <div class="integrated-step-sub" style="font-size:13px;line-height:1.6">
+          지금부터 단어 5개가 하나씩 나옵니다.<br>잠시 후 기억나는 것을 골라주세요.
+        </div>
+      </div>`;
+    this._speak('이제 단어 다섯 개를 보여드릴게요. 잘 기억해 주세요.');
+    this._brain._to = setTimeout(showWord, 2600);
+  },
+
+  // 간섭 과제 (즉시 회상 방지 — 임상 프로토콜의 delay 역할)
+  _brainRenderRecallDistract() {
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    let n = 10;
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:20px;text-align:center">
+        <div class="bstep">3 / 3 · 잠시만요</div>
+        <div class="integrated-step-title" style="font-size:19px;margin-bottom:8px">🔢 숫자를 세어볼까요</div>
+        <div class="integrated-step-sub" style="font-size:13px;margin-bottom:16px">10부터 1까지 거꾸로 세어보세요</div>
+        <div class="bcount" id="bcount">10</div>
+      </div>`;
+    this._speak('잠깐 다른 걸 해볼게요. 십부터 하나까지 거꾸로 세어보세요.');
+    this._brain._timer = setInterval(() => {
+      n--;
+      const el = document.getElementById('bcount');
+      if (el) el.textContent = n > 0 ? n : '👏';
+      if (n <= 0) {
+        clearInterval(this._brain._timer); this._brain._timer = null;
+        this._brain._to = setTimeout(() => this._brainRenderRecallTest(), 800);
+      }
+    }, 1000);
+  },
+
+  _brainRenderRecallTest() {
+    const r = this._brain.recall;
+    r.phase = 'test';
+    // 정답 5개 + 오답 5개 섞기
+    const all = [].concat(this._brainWordSets.flat()).filter(w => !r.words.includes(w));
+    const distract = [];
+    while (distract.length < 5 && all.length) {
+      distract.push(all.splice(Math.floor(Math.random()*all.length), 1)[0]);
+    }
+    const opts = [...r.words, ...distract].sort(() => Math.random() - 0.5);
+    r.options = opts;
+    this._brainRenderRecallOptions();
+    this._speak('아까 본 단어를 모두 골라주세요.');
+  },
+
+  _brainRenderRecallOptions() {
+    const r = this._brain.recall;
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    const btns = r.options.map(w =>
+      `<button class="bword-opt ${r.answers.includes(w)?'on':''}"
+               onclick="App._brainToggleWord('${this._esc(w)}')">${this._esc(w)}</button>`).join('');
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:20px">
+        <div class="bstep">3 / 3 · 단어 기억</div>
+        <div class="integrated-step-title" style="font-size:19px;text-align:center;margin-bottom:6px">
+          아까 본 단어를 골라주세요
+        </div>
+        <div class="integrated-step-sub" style="font-size:13px;text-align:center;margin-bottom:14px">
+          기억나는 것만 고르시면 돼요 (${r.answers.length}개 선택)
+        </div>
+        <div class="bword-grid">${btns}</div>
+        <button class="mood-start-btn" style="width:100%;padding:15px;margin-top:16px"
+                onclick="App._brainSubmitRecall()">다 골랐어요 →</button>
+      </div>`;
+  },
+
+  _brainToggleWord(w) {
+    const r = this._brain.recall;
+    const i = r.answers.indexOf(w);
+    if (i >= 0) r.answers.splice(i, 1); else r.answers.push(w);
+    this._brainRenderRecallOptions();
+  },
+
+  _brainSubmitRecall() {
+    const r = this._brain.recall;
+    const hit = r.answers.filter(w => r.words.includes(w)).length;
+    const fa  = r.answers.filter(w => !r.words.includes(w)).length;  // 오경보
+    const score = Math.round(Math.max(0, Math.min(100, ((hit - fa*0.5) / r.words.length) * 100)));
+    this._brain.results.recall = { hit, total: r.words.length, falseAlarm: fa, score };
+    this._brainFinish();
+  },
+
+  // ─────────────────────────────────────────
+  // 종합 → "두뇌 나이"
+  // ─────────────────────────────────────────
+  _brainFinish() {
+    const R = this._brain.results;
+    const profile = this._getUserProfile ? this._getUserProfile() : {};
+    const age = (profile && profile.age) || 50;
+
+    // 보행/반응속도 연동 (있으면)
+    const w = this.state.wellness || {};
+    const gaitCV = (w.gait && typeof w.gait.cvStepTime === 'number') ? w.gait.cvStepTime : null;
+    const rt = (w.reaction && typeof w.reaction.avgMs === 'number') ? w.reaction.avgMs : null;
+
+    // 영역 점수
+    const sClock = R.clock ? R.clock.score : null;       // 시공간/실행
+    const sSeq   = R.sequence ? R.sequence.score : null; // 작업기억
+    const sRec   = R.recall ? R.recall.score : null;     // 기억
+    let sGait = null, sRt = null;
+    if (gaitCV != null) sGait = Math.round(Math.max(0, Math.min(100, (1 - (gaitCV - 2) / 8) * 100)));
+    if (rt != null)     sRt   = Math.round(Math.max(0, Math.min(100, (1 - (rt - 250) / 350) * 100)));
+
+    const parts = [
+      { key:'clock', label:'시공간·실행', v:sClock, w:0.25, ref:'Shulman 2000 · 시계그리기' },
+      { key:'seq',   label:'작업기억',   v:sSeq,   w:0.25, ref:'Kessels 2000 · Corsi span' },
+      { key:'recall',label:'기억력',     v:sRec,   w:0.25, ref:'Rey AVLT 축약형' },
+      { key:'gait',  label:'보행 안정성', v:sGait,  w:0.15, ref:'Hausdorff 2007 · Stride CV' },
+      { key:'rt',    label:'처리속도',   v:sRt,    w:0.10, ref:'반응속도 검사' },
+    ];
+    let sum = 0, wt = 0;
+    for (const p of parts) if (typeof p.v === 'number') { sum += p.v * p.w; wt += p.w; }
+    const overall = wt > 0 ? Math.round(sum / wt) : 0;
+
+    // 두뇌 나이: 100점=실제나이-12, 50점=실제나이, 0점=실제나이+18
+    let brainAge;
+    if (overall >= 50) brainAge = Math.round(age - ((overall - 50) / 50) * 12);
+    else brainAge = Math.round(age + ((50 - overall) / 50) * 18);
+    brainAge = Math.max(20, Math.min(95, brainAge));
+
+    const rec = {
+      t: Date.now(), overall, brainAge, age,
+      clock: R.clock || null, sequence: R.sequence || null, recall: R.recall || null,
+      gaitCV, rt, parts: parts.filter(p => typeof p.v === 'number').map(p => ({ label:p.label, v:p.v, ref:p.ref })),
+    };
+    try {
+      const h = JSON.parse(localStorage.getItem('history_brain') || '[]');
+      h.push(rec);
+      if (h.length > 100) h.splice(0, h.length - 100);
+      localStorage.setItem('history_brain', JSON.stringify(h));
+    } catch (e) {}
+    try { this.state.wellness = this.state.wellness || {}; this.state.wellness.brain = rec; } catch (e) {}
+    this._trackEvent && this._trackEvent('measurement_complete', { category: 'brain', score: overall });
+
+    this._brainRenderResult(rec);
+  },
+
+  _brainRenderResult(rec) {
+    const c = document.getElementById('brain-container');
+    if (!c) return;
+    const diff = rec.age - rec.brainAge;
+    let tone, headline, msg;
+    if (diff >= 5)      { tone='great'; headline='오늘 컨디션이 아주 좋아요'; msg='실제 나이보다 젊은 결과예요. 지금의 생활 습관을 유지해 보세요.'; }
+    else if (diff >= 0) { tone='good';  headline='또래와 비슷한 수준이에요'; msg='안정적인 컨디션입니다. 꾸준히 기록하면 변화를 볼 수 있어요.'; }
+    else if (diff >= -6){ tone='fair';  headline='조금 피곤한 날인가 봐요';   msg='컨디션은 그날그날 달라져요. 잘 쉬고 다시 해보세요.'; }
+    else                { tone='low';   headline='오늘은 집중이 어려우셨네요'; msg='한 번의 결과로 판단하지 마세요. 여러 번 기록해 흐름을 보는 게 중요해요.'; }
+
+    const barsHTML = rec.parts.map(p => `
+      <div class="brain-part">
+        <div class="brain-part-top">
+          <span class="brain-part-l">${this._esc(p.label)}</span>
+          <span class="brain-part-v">${p.v}점</span>
+        </div>
+        <div class="brain-part-track"><div class="brain-part-fill" style="width:${Math.max(3,p.v)}%"></div></div>
+        <div class="brain-part-ref">📖 ${this._esc(p.ref)}</div>
+      </div>`).join('');
+
+    const missing = [];
+    if (rec.gaitCV == null) missing.push('보행 분석');
+    if (rec.rt == null) missing.push('반응속도');
+
+    c.innerHTML = `
+      <div class="integrated-step-card" style="padding:22px">
+        <div class="brain-age-hero ${tone}">
+          <div class="brain-age-label">오늘의 두뇌 나이</div>
+          <div class="brain-age-num">${rec.brainAge}<span class="brain-age-unit">세 수준</span></div>
+          <div class="brain-age-diff">${diff > 0 ? `실제 나이보다 ${diff}세 젊어요 🎉` : diff === 0 ? '실제 나이와 같아요' : `실제 나이보다 ${-diff}세 높게 나왔어요`}</div>
+        </div>
+        <div class="brain-headline">${this._esc(headline)}</div>
+        <div class="brain-msg">${this._esc(msg)}</div>
+
+        <div class="brain-sec-t">영역별 결과</div>
+        ${barsHTML}
+
+        ${missing.length ? `<div class="brain-missing">
+          💡 <strong>${missing.join(' · ')}</strong>도 측정하면 두뇌 나이가 더 정확해져요.
+        </div>` : ''}
+
+        <div class="brain-detail">
+          ${rec.clock ? `<div class="brain-d-row"><span>🕐 시계 그리기</span><span>${rec.clock.correct ? '정확 ✅' : `${rec.clock.given} (정답 ${rec.clock.target})`}</span></div>` : ''}
+          ${rec.sequence ? `<div class="brain-d-row"><span>🔢 순서 기억</span><span>${rec.sequence.span}개 기억</span></div>` : ''}
+          ${rec.recall ? `<div class="brain-d-row"><span>📝 단어 기억</span><span>${rec.recall.hit}/${rec.recall.total}개${rec.recall.falseAlarm ? ` (오답 ${rec.recall.falseAlarm})` : ''}</span></div>` : ''}
+        </div>
+
+        <div class="brain-disclaimer">
+          ⚠️ 이 결과는 <strong>의학적 진단이 아닙니다</strong>. 인지 건강이 걱정되신다면
+          가까운 치매안심센터(☎ 1899-9988)나 신경과 진료를 받아보세요.
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:14px">
+          <button class="mood-history-btn" style="flex:1;padding:14px" onclick="App.startBrainTest()">🔄 다시</button>
+          <button class="mood-start-btn" style="flex:1;padding:14px" onclick="App.goPage('body')">완료</button>
+        </div>
+      </div>`;
+
+    this._speak(`오늘의 두뇌 나이는 ${rec.brainAge}세 수준으로 나왔습니다. ${headline}. ${msg}`);
+    if (navigator.vibrate) navigator.vibrate([100,60,100]);
+  },
+
+  // ★ v29.0: 신체 페이지에 두뇌 컨디션 카드 삽입 (HTML 무수정)
+  // ══════════════════════════════════════════════════════════════
+  // ★ v29.0 ③ 관계 기반 안부 — 양방향 돌봄 루프
+  //   · 수치가 아니라 "안심"을 전달
+  //   · N일 미측정 시 스스로에게 리마인드 (감시 아닌 자기 돌봄)
+  //   · 상호 안부: 받은 사람도 답장 가능
+  //   ※ 백엔드 없음 — 로컬 저장 + URL 공유 방식 유지
+  // ══════════════════════════════════════════════════════════════
+  _careCfgKey: 'yb_care_cfg',
+
+  _careGetCfg() {
+    try {
+      const c = JSON.parse(localStorage.getItem(this._careCfgKey) || '{}');
+      return {
+        partnerName: c.partnerName || '',
+        myName: c.myName || '',
+        relation: c.relation || 'child',
+        remindDays: typeof c.remindDays === 'number' ? c.remindDays : 3,
+        enabled: c.enabled !== false,
+        lastNudge: c.lastNudge || 0,
+      };
+    } catch (e) {
+      return { partnerName:'', myName:'', relation:'child', remindDays:3, enabled:true, lastNudge:0 };
+    }
+  },
+
+  _careSaveCfg(patch) {
+    const cur = this._careGetCfg();
+    const next = Object.assign(cur, patch || {});
+    try { localStorage.setItem(this._careCfgKey, JSON.stringify(next)); } catch (e) {}
+    return next;
+  },
+
+  // 마지막 측정 시각 (모든 측정 통합)
+  _careLastMeasureAt() {
+    let last = 0;
+    const keys = ['history_face','history_finger','history_mood','history_balance',
+                  'history_gait','history_tremor','history_reaction','history_brain'];
+    for (const k of keys) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(k) || '[]');
+        if (Array.isArray(arr) && arr.length) {
+          const t = arr[arr.length-1].t || 0;
+          if (t > last) last = t;
+        }
+      } catch (e) {}
+    }
+    return last;
+  },
+
+  // ── 안심 메시지 생성: 수치가 아니라 "느낌" ──
+  _careBuildComfortMessage() {
+    const cfg = this._careGetCfg();
+    const w = this.state.wellness || {};
+    const who = cfg.myName || '나';
+
+    // 오늘 측정한 것들 모으기
+    const today = [];
+    const pick = (obj, label) => {
+      if (obj && obj.t && (Date.now() - obj.t) < 20*3600000) today.push(label);
+    };
+    pick(w.face, '얼굴'); pick(w.finger, '손가락'); pick(w.balance, '균형');
+    pick(w.gait, '보행'); pick(w.brain, '두뇌'); 
+
+    // 마음 상태
+    let moodKo = null;
+    try {
+      const mh = JSON.parse(localStorage.getItem('history_mood') || '[]');
+      if (mh.length && (Date.now() - mh[mh.length-1].t) < 20*3600000) {
+        moodKo = mh[mh.length-1].cardKo || null;
+      }
+    } catch (e) {}
+
+    // 종합 점수 → 안심 문구 (숫자 노출 최소화)
+    let overall = null;
+    try { const r = this._wellnessComputeScore(); overall = r && r.score; } catch (e) {}
+
+    let feel, emoji;
+    if (overall == null)      { feel = '오늘도 건강을 챙겼어요'; emoji = '🌿'; }
+    else if (overall >= 80)   { feel = '오늘 컨디션이 좋아요';   emoji = '😊'; }
+    else if (overall >= 65)   { feel = '오늘도 무난하게 잘 지냈어요'; emoji = '🙂'; }
+    else if (overall >= 50)   { feel = '오늘은 조금 피곤한가 봐요'; emoji = '😌'; }
+    else                      { feel = '오늘은 푹 쉬려고 해요';   emoji = '🍵'; }
+
+    let msg = `${emoji} ${who}, ${feel}.`;
+    if (moodKo) msg += `\n마음은 "${moodKo}"에 가까웠어요.`;
+    if (today.length) msg += `\n오늘 ${today.slice(0,3).join('·')} 측정을 마쳤어요.`;
+    msg += `\n\n걱정 마세요, 잘 지내고 있어요. 💌`;
+    return { msg, emoji, feel, overall, items: today, moodKo };
+  },
+
+  // ── 안부 보내기 (Web Share / 클립보드) ──
+  async careSendComfort() {
+    const cfg = this._careGetCfg();
+    const built = this._careBuildComfortMessage();
+    const target = cfg.partnerName ? `${cfg.partnerName}님께\n\n` : '';
+    const text = target + built.msg;
+
+    this._careSaveCfg({ lastSentAt: Date.now() });
+    this._trackEvent && this._trackEvent('care_send', { has_partner: !!cfg.partnerName });
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '오늘의 안부', text });
+        this._toast && this._toast('안부를 전했어요 💌');
+        return;
+      }
+    } catch (e) { /* 사용자가 취소 */ }
+    try {
+      await navigator.clipboard.writeText(text);
+      this._toast && this._toast('메시지를 복사했어요. 붙여넣기 해주세요 📋');
+    } catch (e) {
+      alert(text);
+    }
+  },
+
+  // ── 미측정 리마인드 확인 (앱 열 때 호출) ──
+  _careCheckNudge() {
+    const cfg = this._careGetCfg();
+    if (!cfg.enabled) return null;
+    const last = this._careLastMeasureAt();
+    if (!last) return null;
+    const days = Math.floor((Date.now() - last) / 86400000);
+    if (days < cfg.remindDays) return null;
+    // 하루 1회만
+    if (Date.now() - (cfg.lastNudge || 0) < 20*3600000) return null;
+    this._careSaveCfg({ lastNudge: Date.now() });
+    return { days, partnerName: cfg.partnerName };
+  },
+
+  // ── 돌봄 카드 (홈 화면용) ──
+  _buildCareLoopCard() {
+    const cfg = this._careGetCfg();
+    const last = this._careLastMeasureAt();
+    const days = last ? Math.floor((Date.now() - last) / 86400000) : null;
+    const built = this._careBuildComfortMessage();
+
+    const relLabel = { child:'자녀분', parent:'부모님', friend:'친구', partner:'배우자', self:'소중한 분' }[cfg.relation] || '소중한 분';
+    const setupDone = !!cfg.partnerName;
+
+    return `
+      <div class="care-loop-card">
+        <div class="clc-head">
+          <div class="clc-title">💌 오늘의 안부</div>
+          ${days !== null ? `<div class="clc-days ${days>=3?'warn':''}">${days === 0 ? '오늘 측정함' : `${days}일 전 측정`}</div>` : ''}
+        </div>
+
+        <div class="clc-preview">
+          <div class="clc-preview-label">${relLabel}께 이렇게 전해져요</div>
+          <div class="clc-bubble">${this._esc(built.msg).replace(/\n/g,'<br>')}</div>
+          <div class="clc-note">🔒 구체적인 수치가 아니라 <strong>안심</strong>만 전해집니다</div>
+        </div>
+
+        ${setupDone
+          ? `<button class="clc-send" onclick="App.careSendComfort()">
+               ${this._esc(cfg.partnerName)}님께 안부 전하기 →
+             </button>`
+          : `<button class="clc-send" onclick="App.careOpenSetup()">
+               안부 받을 분 설정하기 →
+             </button>`}
+
+        <div class="clc-actions">
+          <button class="clc-sub-btn" onclick="App.careOpenSetup()">⚙️ 설정</button>
+          ${setupDone ? `<button class="clc-sub-btn" onclick="App.careSendComfort()">📤 다시 보내기</button>` : ''}
+        </div>
+      </div>`;
+  },
+
+  // ── 안부 설정 모달 ──
+  careOpenSetup() {
+    const cfg = this._careGetCfg();
+    let modal = document.getElementById('care-setup-modal');
+    if (modal) modal.remove();
+    modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'care-setup-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+    const rels = [
+      ['child','👨‍👩‍👧 자녀'], ['parent','👴 부모님'],
+      ['friend','🧑‍🤝‍🧑 친구'], ['partner','💑 배우자'],
+    ];
+    modal.innerHTML = `
+      <div class="modal-card" style="max-width:380px;width:100%;padding:24px;max-height:90vh;overflow-y:auto">
+        <div class="modal-title" style="font-size:19px;text-align:center;margin-bottom:6px">💌 안부 설정</div>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;text-align:center;margin-bottom:18px">
+          측정을 마치면 소중한 분께<br><strong>안심 메시지</strong>를 보낼 수 있어요.
+        </p>
+
+        <label class="care-label">누구에게 보낼까요?</label>
+        <div class="care-rel-grid">
+          ${rels.map(([k,l]) => `<button class="care-rel ${cfg.relation===k?'on':''}"
+              onclick="App._careSetRel('${k}')">${l}</button>`).join('')}
+        </div>
+
+        <label class="care-label">받는 분 이름 (별명도 좋아요)</label>
+        <input id="care-partner" class="care-input" placeholder="예: 큰딸, 엄마, 영희"
+               value="${this._esc(cfg.partnerName)}" maxlength="20">
+
+        <label class="care-label">내 이름 (메시지에 표시돼요)</label>
+        <input id="care-myname" class="care-input" placeholder="예: 아빠, 김영수"
+               value="${this._esc(cfg.myName)}" maxlength="20">
+
+        <label class="care-label">며칠 측정이 없으면 알려드릴까요?</label>
+        <div class="care-days-grid">
+          ${[2,3,5,7].map(d => `<button class="care-day ${cfg.remindDays===d?'on':''}"
+              onclick="App._careSetDays(${d})">${d}일</button>`).join('')}
+        </div>
+
+        <div class="care-privacy">
+          🔒 이 정보는 <strong>내 폰에만</strong> 저장되며 서버로 전송되지 않아요.
+          메시지는 카카오톡·문자 등으로 <strong>직접</strong> 보내집니다.
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="m-btn" style="flex:1" onclick="App.careCloseSetup()">취소</button>
+          <button class="m-btn ok" style="flex:1" onclick="App.careSaveSetup()">저장</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  },
+
+  _careSetRel(k) {
+    this._careSaveCfg({ relation: k });
+    const p = document.getElementById('care-partner')?.value || '';
+    const m = document.getElementById('care-myname')?.value || '';
+    this._careSaveCfg({ partnerName: p, myName: m });
+    this.careOpenSetup();
+  },
+  _careSetDays(d) {
+    const p = document.getElementById('care-partner')?.value || '';
+    const m = document.getElementById('care-myname')?.value || '';
+    this._careSaveCfg({ remindDays: d, partnerName: p, myName: m });
+    this.careOpenSetup();
+  },
+  careCloseSetup() {
+    document.getElementById('care-setup-modal')?.remove();
+  },
+  careSaveSetup() {
+    const p = (document.getElementById('care-partner')?.value || '').trim();
+    const m = (document.getElementById('care-myname')?.value || '').trim();
+    this._careSaveCfg({ partnerName: p, myName: m, enabled: true });
+    this.careCloseSetup();
+    this._toast && this._toast('안부 설정을 저장했어요 💌');
+    try { this._refreshCareCard(); } catch (e) {}
+  },
+
+  _refreshCareCard() {
+    const holder = document.getElementById('care-loop-holder');
+    if (holder) holder.innerHTML = this._buildCareLoopCard();
+  },
+
+  _injectCareCard() {
+    const home = document.getElementById('page-home');
+    if (!home) return;
+    let holder = document.getElementById('care-loop-holder');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.id = 'care-loop-holder';
+      holder.style.padding = '0 16px';
+      // 홈 하단 개인정보 카드 앞에 삽입
+      const priv = home.querySelector('.privacy-card');
+      if (priv && priv.parentNode) priv.parentNode.insertBefore(holder, priv);
+      else home.appendChild(holder);
+    }
+    holder.innerHTML = this._buildCareLoopCard();
+  },
+
+  _injectBrainCard() {
+    const wrap = document.querySelector('#page-body .body-measure-cards');
+    if (!wrap) return;
+    if (document.getElementById('brain-entry-card')) {
+      this._updateBrainCard();
+      return;
+    }
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'brain-entry-card';
+    btn.className = 'body-card-game bc-brain';
+    btn.onclick = () => this.startBrainTest();
+    wrap.insertBefore(btn, wrap.firstChild);
+    this._updateBrainCard();
+  },
+
+  _updateBrainCard() {
+    const btn = document.getElementById('brain-entry-card');
+    if (!btn) return;
+    const last = this._brainGetLast();
+    btn.innerHTML = `
+      <div class="bcg-badge-row">
+        <span class="bcg-badge brain-badge">NEW</span>
+      </div>
+      <div class="bcg-body">
+        <div class="bcg-icon brain-icon">🧠</div>
+        <div class="bcg-content">
+          <div class="bcg-title">오늘의 두뇌 컨디션</div>
+          <div class="bcg-desc">시계·기억·순서 3가지 활동</div>
+          <div class="bcg-time">⏱ 약 3분</div>
+        </div>
+        <div class="bcg-action-wrap">
+          <div class="bcg-btn brain-btn">측정하기 ›</div>
+          <div class="bcg-tip">${last ? `지난 기록<br>${last.brainAge}세 수준` : '두뇌 나이를<br>확인해요! 🧠'}</div>
+        </div>
+      </div>`;
+  },
+
+  _buildTrustCard(src, kind) {
+    if (!src) return '';
+    // kind: 'finger' | 'face'
+    let score = null, parts = [];
+
+    if (kind === 'finger') {
+      const sqi   = (typeof src.sqiQuality === 'number') ? src.sqiQuality : null;
+      const beat  = (typeof src.beatValidRatio === 'number') ? src.beatValidRatio : null;
+      const clean = (typeof src.cleanRate === 'number') ? src.cleanRate : null;
+      const vals = [sqi, beat, clean].filter(v => typeof v === 'number');
+      if (!vals.length) return '';
+      // 가중 평균 (신호품질 45% + 박동일관성 30% + 채택률 25%)
+      let w = 0, s = 0;
+      if (sqi   != null) { s += sqi   * 0.45; w += 0.45; }
+      if (beat  != null) { s += beat  * 0.30; w += 0.30; }
+      if (clean != null) { s += clean * 0.25; w += 0.25; }
+      score = Math.round(s / (w || 1));
+      if (sqi   != null) parts.push({ label: '신호 깨끗함', v: sqi,   ref: 'Elgendi 2016 · 왜도 기반 SQI' });
+      if (beat  != null) parts.push({ label: '박동 일관성', v: beat,  ref: 'Orphanidou 2015 · 템플릿 매칭' });
+      if (clean != null) parts.push({ label: '신호 채택률', v: clean, ref: 'Task Force 1996 · IBI 정제' });
+    } else {
+      const sqi  = (typeof src.sqi === 'number') ? src.sqi : null;
+      const conc = (typeof src.sqiSpectralConc === 'number') ? src.sqiSpectralConc : null;
+      if (sqi == null) return '';
+      score = Math.round(sqi);
+      parts.push({ label: '모델 신뢰도', v: sqi, ref: 'ME-rPPG · 심박 추정 수렴도' });
+      if (conc != null) parts.push({ label: '심박 대역 집중도', v: conc, ref: 'de Haan 2013 · CHROM 교차검증' });
+    }
+    if (score == null || isNaN(score)) return '';
+    score = Math.max(0, Math.min(100, score));
+
+    // 등급별 메시지 (정직하게)
+    let tone, icon, title, msg;
+    if (score >= 85) {
+      tone='great'; icon='🟢'; title='아주 깨끗한 신호였어요';
+      msg='측정 환경이 좋았습니다. 이 결과는 믿고 참고하셔도 좋아요.';
+    } else if (score >= 70) {
+      tone='good'; icon='🟢'; title='신뢰할 만한 측정이에요';
+      msg='신호가 안정적이었습니다. 결과를 참고하셔도 좋아요.';
+    } else if (score >= 55) {
+      tone='fair'; icon='🟡'; title='보통 수준의 신호였어요';
+      msg = (kind === 'finger')
+        ? '손가락을 조금 더 가만히 대면 더 정확해집니다.'
+        : '조명을 밝게 하고 움직임을 줄이면 더 정확해집니다.';
+    } else {
+      tone='low'; icon='🟠'; title='신호가 흔들렸어요';
+      msg = (kind === 'finger')
+        ? '이 결과는 참고만 해주세요. 밝은 곳에서 손가락을 렌즈에 완전히 덮고 다시 측정하면 훨씬 정확해집니다.'
+        : '이 결과는 참고만 해주세요. 밝은 곳에서 얼굴을 화면 가운데 두고 다시 측정해 보세요.';
+    }
+
+    const bars = parts.map(p => `
+      <div class="trust-row">
+        <div class="trust-row-top">
+          <span class="trust-row-label">${this._esc(p.label)}</span>
+          <span class="trust-row-val">${Math.round(p.v)}%</span>
+        </div>
+        <div class="trust-row-track"><div class="trust-row-fill" style="width:${Math.max(3,Math.min(100,p.v))}%"></div></div>
+        <div class="trust-row-ref">📖 ${this._esc(p.ref)}</div>
+      </div>`).join('');
+
+    return `
+      <div class="trust-card ${tone}">
+        <div class="trust-head">
+          <div class="trust-title">${icon} 이번 측정 신뢰도</div>
+          <div class="trust-score">${score}<span class="trust-score-unit">%</span></div>
+        </div>
+        <div class="trust-gauge"><div class="trust-gauge-fill" style="width:${score}%"></div></div>
+        <div class="trust-msg-t">${this._esc(title)}</div>
+        <div class="trust-msg">${this._esc(msg)}</div>
+        <details class="trust-detail">
+          <summary>어떻게 계산했나요?</summary>
+          <div class="trust-rows">${bars}</div>
+          <div class="trust-foot">신뢰도는 측정 신호의 품질을 학술 검증된 방법으로 자체 평가한 값입니다.
+          점수가 낮다고 건강에 문제가 있다는 뜻이 아니라, <strong>측정 환경</strong>이 좋지 않았다는 의미예요.</div>
+        </details>
+      </div>`;
+  },
+
   _computeMindTrend(days = 30) {
     const out = {
       ok: false, count: 0, days,
@@ -14114,6 +15083,22 @@ const App = {
   _faceDisplayResults(r) {
     const panel = document.getElementById('face-result-panel');
     panel.classList.add('show');
+
+    // ★ v29.0: 측정 신뢰도 카드 삽입 (결과 제목 바로 아래)
+    try {
+      const trustHTML = this._buildTrustCard(r, 'face');
+      if (trustHTML) {
+        let holder = document.getElementById('face-trust-holder');
+        if (!holder) {
+          holder = document.createElement('div');
+          holder.id = 'face-trust-holder';
+          const tabs = panel.querySelector('.result-tabs');
+          if (tabs) panel.insertBefore(holder, tabs);
+          else panel.appendChild(holder);
+        }
+        holder.innerHTML = trustHTML;
+      }
+    } catch (e) { console.warn('[Trust] 얼굴 신뢰도 카드 실패:', e.message); }
 
     // ★ v19.4: 음성 분석 버튼 노출 (측정 완료 후)
     const voiceOpt = document.getElementById('voice-analysis-opt');

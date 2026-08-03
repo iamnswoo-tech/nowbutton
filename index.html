@@ -12044,6 +12044,361 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
   .mt-dow { gap: 4px; padding: 10px 7px 8px; }
   .mt-dow-name { font-size: 10px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v29.0 ④ 측정 신뢰도 카드 — 흰 배경 카드 안에 놓이므로 어두운 글씨
+   ══════════════════════════════════════════════════════════════════ */
+.trust-card {
+  background: #F7F9FC !important;
+  border: 1px solid rgba(15,23,42,.08) !important;
+  border-left: 4px solid #3B82F6 !important;
+  border-radius: 16px !important;
+  padding: 15px 16px !important;
+  margin: 14px 0 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.trust-card * { color: #14243D !important; text-shadow: none !important; }
+.trust-card.great { border-left-color: #10B981 !important; background: #F0FDF6 !important; }
+.trust-card.good  { border-left-color: #22C55E !important; background: #F4FDF7 !important; }
+.trust-card.fair  { border-left-color: #F59E0B !important; background: #FFFBEB !important; }
+.trust-card.low   { border-left-color: #F97316 !important; background: #FFF7ED !important; }
+
+.trust-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 9px;
+}
+.trust-title { font-size: 14px; font-weight: 800; }
+.trust-score { font-size: 26px; font-weight: 900; line-height: 1; }
+.trust-score-unit { font-size: 14px; font-weight: 700; opacity: .7; }
+.trust-card.great .trust-score, .trust-card.good .trust-score { color: #059669 !important; }
+.trust-card.fair  .trust-score { color: #B45309 !important; }
+.trust-card.low   .trust-score { color: #C2410C !important; }
+
+.trust-gauge {
+  height: 8px; background: rgba(15,23,42,.10) !important;
+  border-radius: 999px; overflow: hidden; margin-bottom: 11px;
+}
+.trust-gauge-fill { height: 100%; border-radius: 999px; transition: width .6s ease; }
+.trust-card.great .trust-gauge-fill, .trust-card.good .trust-gauge-fill {
+  background: linear-gradient(90deg,#34D399,#059669) !important; }
+.trust-card.fair .trust-gauge-fill { background: linear-gradient(90deg,#FCD34D,#D97706) !important; }
+.trust-card.low  .trust-gauge-fill { background: linear-gradient(90deg,#FDBA74,#EA580C) !important; }
+
+.trust-msg-t { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+.trust-msg { font-size: 13px; line-height: 1.6; color: #4B5563 !important; }
+
+.trust-detail { margin-top: 11px; }
+.trust-detail summary {
+  font-size: 12px; font-weight: 700; color: #2D7CFF !important;
+  cursor: pointer; list-style: none; padding: 5px 0;
+}
+.trust-detail summary::-webkit-details-marker { display: none; }
+.trust-detail summary::before { content: '▸ '; }
+.trust-detail[open] summary::before { content: '▾ '; }
+
+.trust-rows { display: flex; flex-direction: column; gap: 11px; margin: 9px 0 10px; }
+.trust-row-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px;
+}
+.trust-row-label { font-size: 12px; font-weight: 700; }
+.trust-row-val { font-size: 12px; font-weight: 800; color: #374151 !important; }
+.trust-row-track {
+  height: 6px; background: rgba(15,23,42,.09) !important;
+  border-radius: 999px; overflow: hidden;
+}
+.trust-row-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg,#93C5FD,#3B82F6) !important;
+}
+.trust-row-ref { font-size: 10.5px; color: #6B7684 !important; margin-top: 4px; }
+.trust-foot {
+  font-size: 11.5px; line-height: 1.6; color: #52606D !important;
+  background: rgba(15,23,42,.04) !important;
+  border-radius: 10px; padding: 10px 11px;
+}
+.trust-foot strong { color: #14243D !important; font-weight: 800; }
+
+/* 얼굴 결과 패널용 홀더 */
+#face-trust-holder { margin: 0 0 12px; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v29.0 ② 두뇌 컨디션 (인지 건강)
+   ══════════════════════════════════════════════════════════════════ */
+/* 진입 카드 (신체 페이지) */
+.bc-brain { background: linear-gradient(135deg,#F3E8FF 0%,#E9D5FF 100%) !important; }
+.brain-badge { background: #7C3AED !important; color: #fff !important; }
+.brain-icon  { background: #EDE9FE !important; }
+.brain-btn   { background: #7C3AED !important; color: #fff !important; }
+.bc-brain *  { color: #2E1065 !important; text-shadow: none !important; }
+.bc-brain .brain-badge, .bc-brain .brain-btn { color: #FFFFFF !important; }
+
+/* 단계 표시 */
+.bstep {
+  display: inline-block; background: #EDE9FE !important; color: #5B21B6 !important;
+  font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 999px;
+  margin-bottom: 12px;
+}
+.brain-last {
+  font-size: 12px; color: #4B5563 !important; background: #F1F3F6 !important;
+  border-radius: 10px; padding: 9px 12px; margin-bottom: 14px;
+}
+
+/* ── 시계 그리기 ── */
+.bclock-wrap { display: flex; justify-content: center; margin: 6px 0 16px; }
+.bclock-face {
+  position: relative; width: 210px; height: 210px;
+  background: #FFFFFF !important; border-radius: 50%;
+  box-shadow: 0 4px 18px rgba(10,35,70,.14);
+}
+.bclock-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bclock-circle { fill: none; stroke: #E5E7EB; stroke-width: 2; }
+.bclock-center { fill: #7C3AED; }
+.bclock-hand { stroke-linecap: round; }
+.bclock-hand.hour { stroke: #1F2937; stroke-width: 4.5; }
+.bclock-hand.min  { stroke: #7C3AED; stroke-width: 3; }
+.bclock-num {
+  position: absolute; transform: translate(-50%,-50%);
+  font-size: 14px; font-weight: 800; color: #374151 !important; z-index: 2;
+}
+.bpick-label {
+  font-size: 12px; font-weight: 800; color: #14243D !important;
+  margin: 10px 0 7px 2px;
+}
+.bpick-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 6px; }
+.bpick {
+  padding: 11px 2px; border-radius: 11px; font-size: 13px; font-weight: 700;
+  background: #F1F3F6 !important; color: #14243D !important;
+  border: 1.5px solid transparent !important; cursor: pointer;
+  transition: all .15s;
+}
+.bpick.on {
+  background: #7C3AED !important; color: #FFFFFF !important;
+  border-color: #6D28D9 !important; transform: scale(1.04);
+}
+.bpick:active { transform: scale(.94); }
+
+/* ── 순서 기억 ── */
+.bseq-level {
+  text-align: center; font-size: 12px; font-weight: 700;
+  color: #5B21B6 !important; margin-bottom: 12px;
+}
+.bseq-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 10px;
+  max-width: 280px; margin: 0 auto;
+}
+.bseq-cell {
+  aspect-ratio: 1; border-radius: 16px; cursor: pointer;
+  background: #EEF2F7 !important; border: 2px solid #E2E8F0 !important;
+  transition: all .12s;
+}
+.bseq-cell.lit {
+  background: linear-gradient(135deg,#A78BFA,#7C3AED) !important;
+  border-color: #6D28D9 !important; transform: scale(1.06);
+  box-shadow: 0 0 18px rgba(124,58,237,.5);
+}
+.bseq-cell.tapped {
+  background: #C4B5FD !important; transform: scale(.93);
+}
+.bseq-cell:disabled { cursor: default; }
+
+/* ── 단어 기억 ── */
+.bword {
+  font-size: 40px; font-weight: 900; color: #5B21B6 !important;
+  padding: 34px 0; letter-spacing: .02em;
+}
+.bcount {
+  font-size: 56px; font-weight: 900; color: #7C3AED !important; padding: 22px 0;
+}
+.bword-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
+.bword-opt {
+  padding: 15px 8px; border-radius: 14px; font-size: 15px; font-weight: 700;
+  background: #F1F3F6 !important; color: #14243D !important;
+  border: 2px solid transparent !important; cursor: pointer; transition: all .15s;
+}
+.bword-opt.on {
+  background: #7C3AED !important; color: #FFFFFF !important;
+  border-color: #6D28D9 !important;
+}
+.bword-opt:active { transform: scale(.96); }
+
+/* ── 결과 ── */
+.brain-age-hero {
+  border-radius: 20px; padding: 22px 16px; text-align: center; margin-bottom: 16px;
+}
+.brain-age-hero.great { background: linear-gradient(135deg,#D1FAE5,#A7F3D0) !important; }
+.brain-age-hero.good  { background: linear-gradient(135deg,#DBEAFE,#BFDBFE) !important; }
+.brain-age-hero.fair  { background: linear-gradient(135deg,#FEF3C7,#FDE68A) !important; }
+.brain-age-hero.low   { background: linear-gradient(135deg,#FFEDD5,#FED7AA) !important; }
+.brain-age-hero * { color: #14243D !important; text-shadow: none !important; }
+.brain-age-label { font-size: 13px; font-weight: 700; opacity: .78; margin-bottom: 5px; }
+.brain-age-num { font-size: 46px; font-weight: 900; line-height: 1.05; }
+.brain-age-unit { font-size: 17px; font-weight: 800; margin-left: 3px; }
+.brain-age-diff { font-size: 13px; font-weight: 700; margin-top: 7px; }
+
+.brain-headline {
+  font-size: 17px; font-weight: 800; color: #14243D !important;
+  text-align: center; margin-bottom: 6px;
+}
+.brain-msg {
+  font-size: 13px; line-height: 1.65; color: #4B5563 !important;
+  text-align: center; margin-bottom: 18px;
+}
+.brain-sec-t {
+  font-size: 13px; font-weight: 800; color: #14243D !important; margin-bottom: 11px;
+}
+.brain-part { margin-bottom: 13px; }
+.brain-part-top {
+  display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;
+}
+.brain-part-l { font-size: 12.5px; font-weight: 700; color: #14243D !important; }
+.brain-part-v { font-size: 12.5px; font-weight: 800; color: #5B21B6 !important; }
+.brain-part-track {
+  height: 7px; background: rgba(15,23,42,.09) !important;
+  border-radius: 999px; overflow: hidden;
+}
+.brain-part-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg,#C4B5FD,#7C3AED) !important;
+}
+.brain-part-ref { font-size: 10.5px; color: #6B7684 !important; margin-top: 4px; }
+
+.brain-missing {
+  background: #EFF6FF !important; border: 1px solid #BFDBFE !important;
+  border-radius: 12px; padding: 11px 13px; margin: 14px 0;
+  font-size: 12.5px; line-height: 1.6; color: #1E40AF !important;
+}
+.brain-missing strong { color: #1E3A8A !important; font-weight: 800; }
+
+.brain-detail {
+  background: #F7F9FC !important; border-radius: 12px;
+  padding: 12px 13px; margin: 14px 0;
+}
+.brain-d-row {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 12.5px; padding: 5px 0; color: #374151 !important;
+}
+.brain-d-row span:first-child { font-weight: 700; }
+
+.brain-disclaimer {
+  background: #FFF7ED !important; border: 1px solid #FED7AA !important;
+  border-radius: 12px; padding: 12px 13px;
+  font-size: 11.5px; line-height: 1.6; color: #7C2D12 !important;
+}
+.brain-disclaimer strong { color: #7C2D12 !important; font-weight: 800; }
+
+@media (max-width: 360px) {
+  .bclock-face { width: 180px; height: 180px; }
+  .bpick { padding: 9px 2px; font-size: 12px; }
+  .brain-age-num { font-size: 40px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v29.0 ③ 관계 기반 안부 (돌봄 루프)
+   ══════════════════════════════════════════════════════════════════ */
+.care-loop-card {
+  background: rgba(18,60,105,.46) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  border-radius: 22px !important;
+  padding: 18px 16px !important;
+  margin-bottom: 16px !important;
+  -webkit-backdrop-filter: blur(16px) saturate(125%) !important;
+  backdrop-filter: blur(16px) saturate(125%) !important;
+}
+.care-loop-card * { color: #FFFFFF !important; }
+.clc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 13px;
+}
+.clc-title {
+  font-size: 16px; font-weight: 800;
+  text-shadow: 0 1px 4px rgba(5,25,55,.55) !important;
+}
+.clc-days {
+  font-size: 11.5px; font-weight: 700; padding: 5px 11px; border-radius: 999px;
+  background: rgba(255,255,255,.20) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+.clc-days.warn {
+  background: rgba(245,158,11,.30) !important;
+  border-color: rgba(253,186,116,.55) !important;
+}
+
+.clc-preview {
+  background: rgba(10,45,85,.40) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 16px; padding: 13px; margin-bottom: 13px;
+}
+.clc-preview-label {
+  font-size: 11.5px; font-weight: 700; opacity: .88; margin-bottom: 8px;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+.clc-bubble {
+  background: rgba(255,255,255,.94) !important;
+  border-radius: 14px 14px 14px 4px; padding: 13px 14px;
+  font-size: 13.5px; line-height: 1.65; font-weight: 600;
+  margin-bottom: 9px;
+}
+.clc-bubble, .clc-bubble * {
+  color: #14243D !important; text-shadow: none !important;
+}
+.clc-note {
+  font-size: 11px; line-height: 1.5; opacity: .88;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+.clc-note strong { font-weight: 800; }
+
+.clc-send {
+  width: 100%; padding: 15px; border-radius: 16px;
+  background: #BE185D !important; color: #FFFFFF !important;
+  border: none !important; font-size: 15px; font-weight: 800;
+  cursor: pointer; text-shadow: none !important;
+  box-shadow: 0 4px 14px rgba(190,24,93,.40);
+}
+.clc-send:active { transform: scale(.98); }
+
+.clc-actions { display: flex; gap: 8px; margin-top: 10px; }
+.clc-sub-btn {
+  flex: 1; padding: 10px; border-radius: 12px; font-size: 12.5px; font-weight: 700;
+  background: rgba(255,255,255,.20) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  color: #FFFFFF !important; cursor: pointer;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+
+/* 설정 모달 */
+.care-label {
+  display: block; font-size: 12.5px; font-weight: 800;
+  color: #14243D !important; margin: 14px 0 7px;
+}
+.care-input {
+  width: 100%; padding: 13px 14px; border-radius: 13px;
+  background: #F7F9FC !important; color: #14243D !important;
+  border: 1.5px solid rgba(15,23,42,.12) !important;
+  font-size: 15px; font-weight: 600;
+}
+.care-input::placeholder { color: #9AA5B1 !important; }
+.care-rel-grid, .care-days-grid {
+  display: grid; grid-template-columns: repeat(2,1fr); gap: 8px;
+}
+.care-days-grid { grid-template-columns: repeat(4,1fr); }
+.care-rel, .care-day {
+  padding: 12px 6px; border-radius: 12px; font-size: 13px; font-weight: 700;
+  background: #F1F3F6 !important; color: #14243D !important;
+  border: 2px solid transparent !important; cursor: pointer; transition: all .15s;
+}
+.care-rel.on, .care-day.on {
+  background: #BE185D !important; color: #FFFFFF !important;
+  border-color: #9D174D !important;
+}
+.care-privacy {
+  background: #F0FDF6 !important; border: 1px solid #A7F3D0 !important;
+  border-radius: 12px; padding: 11px 12px; margin-top: 16px;
+  font-size: 11.5px; line-height: 1.6; color: #065F46 !important;
+}
+.care-privacy strong { color: #064E3B !important; font-weight: 800; }
 </style>
 </head>
 <body>
@@ -12063,7 +12418,7 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v28.0 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v29.0 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
