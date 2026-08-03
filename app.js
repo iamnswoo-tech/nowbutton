@@ -2422,6 +2422,9 @@ const App = {
         </div>
       </div>
 
+      <!-- ★ v28.0: 마음 추이 (감정 기록이 있을 때만 표시) -->
+      ${this._renderMindTrendCard()}
+
       ${streak.count > 0 ? `
       <div class="res-streak-row">
         <div class="res-streak">
@@ -5160,6 +5163,7 @@ const App = {
   _fingerStartTimer() {
     const f = this._finger;
     if (f.timerInterval) clearInterval(f.timerInterval);
+    f._spokenMarks = {}; // ★ v28.0: 음성 안내 중복 방지
     f.timerInterval = setInterval(() => {
       if (!f.measuring) return;
       const elapsed = (performance.now() - f.measureStartTime) / 1000;
@@ -5170,6 +5174,22 @@ const App = {
       const pp = document.getElementById('finger-progress-pct');
       if (tn) tn.textContent = Math.ceil(remain);
       if (pp) pp.textContent = Math.round(pct);
+
+      // ★ v28.0: 측정 중 단계별 음성 안내 (한 번씩만)
+      const sec = Math.ceil(remain);
+      const mark = (key, cond, text) => {
+        if (cond && !f._spokenMarks[key]) { f._spokenMarks[key] = 1; this._speak(text); }
+      };
+      const half = Math.round(f.duration / 2);
+      mark('start5', elapsed >= 5 && elapsed < 7,
+           '좋아요. 손가락을 그대로 유지해 주세요.');
+      mark('half', sec === half,
+           '절반 지났습니다. 잘하고 계세요.');
+      mark('t10', sec === 10,
+           '10초 남았습니다.');
+      mark('t5', sec === 5,
+           '5초 남았습니다. 조금만 더 유지해 주세요.');
+      mark('t3', sec === 3, '3초');
 
       if (remain <= 0) {
         this._fingerFinalize();
@@ -5508,6 +5528,9 @@ const App = {
     if (f.timerInterval) { clearInterval(f.timerInterval); f.timerInterval = null; }
     if (f.rafId) { cancelAnimationFrame(f.rafId); f.rafId = null; }
     this._fingerHideLiveWarning();
+
+    // ★ v28.0: 측정 종료 즉시 안내 (분석 대기 중 사용자 안심)
+    this._speak('측정이 끝났습니다. 손가락을 떼셔도 됩니다. 결과를 분석하고 있어요.');
 
     this._flog(`총 측정 샘플: ${f.measureSamples.length}개`);
 
@@ -6069,6 +6092,10 @@ const App = {
     container.style.display = 'block';
 
     if (!result.ok) {
+      // ★ v28.0: 실패 시에도 음성으로 안내 (화면을 못 보는 상황 대비)
+      setTimeout(() => this._speak(
+        '측정에 실패했습니다. 손가락으로 카메라 렌즈를 완전히 덮고, 움직이지 않은 상태로 다시 측정해 주세요.'
+      ), 300);
       container.innerHTML = `
         <div class="finger-error-card">
           <div class="finger-error-icon">😔</div>
@@ -6284,6 +6311,19 @@ const App = {
     this._renderAdvancedPPGCards(result, 'finger-advanced-cards');
 
     this._flog(`✓ 결과 저장: HR=${result.hr} RMSSD=${result.rmssd} Score=${result.score}`);
+
+    // ★ v28.0: 결과 음성 안내 — 핵심 수치를 귀로 확인
+    try {
+      const q = result.sqiQuality != null ? result.sqiQuality : result.signalQuality;
+      let msg = `분석이 끝났습니다. 심박수는 분당 ${result.hr}회입니다.`;
+      if (result.stressIndexLabel) msg += ` 스트레스는 ${result.stressIndexLabel} 수준이에요.`;
+      if (typeof q === 'number' && q < 55) {
+        msg += ' 다만 신호 품질이 낮아 참고용으로만 봐주세요. 밝은 곳에서 다시 측정하면 더 정확해집니다.';
+      } else {
+        msg += ' 자세한 내용은 화면에서 확인하세요.';
+      }
+      setTimeout(() => this._speak(msg), 400);
+    } catch (e) {}
 
     // ★ v19.3: 측정 완료 후 인사이트 카드
     setTimeout(() => this._showPostMeasureInsight('finger', {
@@ -9356,6 +9396,19 @@ const App = {
         console.warn('[감정] 알 수 없는 단계:', step, '→ 결과로 진행');
         this._renderIntegratedResult(container);
       }
+      // ★ v28.0: 감정 측정 단계별 음성 안내 (단계 진입 시 1회)
+      try {
+        s._spokenSteps = s._spokenSteps || {};
+        const voiceByStep = {
+          panas:   '지금 기분을 묻는 질문이 나옵니다. 정답은 없으니 편하게 느낌대로 골라주세요.',
+          color:   '지금 마음에 가장 끌리는 색을 하나 골라주세요. 생각하지 말고 직관대로 고르시면 됩니다.',
+          mirror1: '마지막입니다. 지금 내 표정과 가장 비슷한 얼굴을 골라주세요.',
+        };
+        if (voiceByStep[step] && !s._spokenSteps[step]) {
+          s._spokenSteps[step] = 1;
+          setTimeout(() => this._speak(voiceByStep[step]), 250);
+        }
+      } catch (ve) {}
     } catch (e) {
       console.error('[감정] 단계 렌더 실패:', step, e);
       // 실패해도 결과는 보여주기
@@ -9627,6 +9680,179 @@ const App = {
   // ─── 통합 점수 계산 ───
   // PANAS, 색상, 표정, 자율신경(HRV/심박) → Russell V/A 좌표
   // → 가장 가까운 Plutchik 감정 카드 선택
+  // ══════════════════════════════════════════════════════════════
+  // ★ v28.0 마음 추이 (Mind Trend) — 웨어러블이 만들 수 없는 시계열
+  // 감정 궤적 + 요일/시간대 패턴 + 신체지표(HRV) 상관
+  // ══════════════════════════════════════════════════════════════
+  _computeMindTrend(days = 30) {
+    const out = {
+      ok: false, count: 0, days,
+      series: [],          // 일자별 요약
+      dowPattern: [],      // 요일별 평균
+      hourPattern: [],     // 시간대별 평균
+      colorTop: [],        // 자주 고른 색
+      insights: [],        // 발견한 패턴 문장
+      hrvLink: null,       // 마음-HRV 상관
+      avgValence: 0, avgEnergy: null, trend: 0,
+    };
+    let mood = [];
+    try { mood = JSON.parse(localStorage.getItem('history_mood') || '[]'); } catch (e) { return out; }
+    if (!Array.isArray(mood) || mood.length === 0) return out;
+
+    const cutoff = Date.now() - days * 86400000;
+    const rows = mood.filter(m => m && m.t >= cutoff && typeof m.valence === 'number');
+    out.count = rows.length;
+    if (rows.length === 0) return out;
+    out.ok = true;
+
+    // ── 1) 일자별 시계열 (같은 날 여러 번이면 평균) ──
+    const byDay = {};
+    for (const r of rows) {
+      const d = new Date(r.t);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!byDay[key]) byDay[key] = { date: key, v: [], a: [], e: [], s: [], colors: [] };
+      byDay[key].v.push(r.valence);
+      if (typeof r.arousal === 'number') byDay[key].a.push(r.arousal);
+      if (typeof r.energy === 'number') byDay[key].e.push(r.energy);
+      if (typeof r.score === 'number') byDay[key].s.push(r.score);
+      if (r.colorHex) byDay[key].colors.push(r.colorHex);
+    }
+    const avg = arr => arr.length ? arr.reduce((x,y)=>x+y,0)/arr.length : null;
+    out.series = Object.values(byDay).sort((a,b)=>a.date<b.date?-1:1).map(d => ({
+      date: d.date,
+      valence: Math.round(avg(d.v) * 100) / 100,
+      arousal: d.a.length ? Math.round(avg(d.a)*100)/100 : null,
+      energy: d.e.length ? Math.round(avg(d.e)*10)/10 : null,
+      score: d.s.length ? Math.round(avg(d.s)) : null,
+      color: d.colors[0] || null,
+      n: d.v.length,
+    }));
+
+    out.avgValence = Math.round(avg(rows.map(r=>r.valence)) * 100) / 100;
+    const energies = rows.map(r=>r.energy).filter(x=>typeof x==='number');
+    out.avgEnergy = energies.length ? Math.round(avg(energies)*10)/10 : null;
+
+    // ── 2) 추세 (최근 절반 vs 이전 절반) ──
+    if (out.series.length >= 4) {
+      const mid = Math.floor(out.series.length/2);
+      const older = avg(out.series.slice(0, mid).map(s=>s.valence));
+      const newer = avg(out.series.slice(mid).map(s=>s.valence));
+      out.trend = Math.round((newer - older) * 100) / 100;
+    }
+
+    // ── 3) 요일 패턴 (Mon~Sun) ──
+    const dowNames = ['일','월','화','수','목','금','토'];
+    const dowBuckets = Array.from({length:7}, () => []);
+    for (const r of rows) {
+      const dow = (typeof r.dow === 'number') ? r.dow : new Date(r.t).getDay();
+      dowBuckets[dow].push(r.valence);
+    }
+    out.dowPattern = dowBuckets.map((b,i) => ({
+      dow: i, name: dowNames[i],
+      valence: b.length ? Math.round(avg(b)*100)/100 : null,
+      n: b.length,
+    }));
+
+    // ── 4) 시간대 패턴 (아침/낮/저녁/밤) ──
+    const slots = [
+      { key:'morning', name:'아침', from:5,  to:11 },
+      { key:'day',     name:'낮',   from:11, to:17 },
+      { key:'evening', name:'저녁', from:17, to:22 },
+      { key:'night',   name:'밤',   from:22, to:5  },
+    ];
+    out.hourPattern = slots.map(s => {
+      const b = rows.filter(r => {
+        const h = (typeof r.hour === 'number') ? r.hour : new Date(r.t).getHours();
+        return s.from < s.to ? (h >= s.from && h < s.to) : (h >= s.from || h < s.to);
+      }).map(r => r.valence);
+      return { key:s.key, name:s.name, valence: b.length ? Math.round(avg(b)*100)/100 : null, n:b.length };
+    });
+
+    // ── 5) 자주 고른 색 ──
+    const colorCount = {};
+    for (const r of rows) {
+      if (!r.colorHex) continue;
+      const k = r.colorHex + '|' + (r.colorName || '');
+      colorCount[k] = (colorCount[k] || 0) + 1;
+    }
+    out.colorTop = Object.entries(colorCount)
+      .map(([k,n]) => ({ hex: k.split('|')[0], name: k.split('|')[1], n }))
+      .sort((a,b)=>b.n-a.n).slice(0,3);
+
+    // ── 6) 마음-HRV 상관 (같은 날 손가락/얼굴 측정과 비교) ──
+    try {
+      let phys = [];
+      for (const key of ['history_finger','history_face']) {
+        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+        if (Array.isArray(arr)) phys = phys.concat(arr.filter(x => x && x.t >= cutoff && typeof x.rmssd === 'number'));
+      }
+      if (phys.length >= 3) {
+        // 같은 날짜끼리 매칭
+        const physByDay = {};
+        for (const p of phys) {
+          const d = new Date(p.t);
+          const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+          (physByDay[k] = physByDay[k] || []).push(p.rmssd);
+        }
+        const pairs = [];
+        for (const s of out.series) {
+          if (physByDay[s.date]) pairs.push({ v: s.valence, rmssd: avg(physByDay[s.date]) });
+        }
+        if (pairs.length >= 3) {
+          const mv = avg(pairs.map(p=>p.v)), mr = avg(pairs.map(p=>p.rmssd));
+          let num=0, dv=0, dr=0;
+          for (const p of pairs) { const a1=p.v-mv, b1=p.rmssd-mr; num+=a1*b1; dv+=a1*a1; dr+=b1*b1; }
+          const r = (dv>0 && dr>0) ? num/Math.sqrt(dv*dr) : 0;
+          out.hrvLink = { n: pairs.length, r: Math.round(r*100)/100, avgRmssd: Math.round(mr*10)/10 };
+        }
+      }
+    } catch (e) {}
+
+    // ── 7) 인사이트 문장 생성 ──
+    const ins = [];
+    // 추세
+    if (out.series.length >= 4) {
+      if (out.trend >= 0.15) ins.push({ icon:'📈', text:`최근 마음이 좋아지는 흐름이에요. 계속 지켜볼까요?`, tone:'good' });
+      else if (out.trend <= -0.15) ins.push({ icon:'📉', text:`최근 마음이 조금 가라앉는 흐름이에요. 무리하지 마세요.`, tone:'warn' });
+      else ins.push({ icon:'➡️', text:`최근 마음 상태가 비교적 안정적으로 유지되고 있어요.`, tone:'neutral' });
+    }
+    // 요일 패턴 (3회 이상 기록된 요일만)
+    const validDow = out.dowPattern.filter(d => d.n >= 2 && d.valence !== null);
+    if (validDow.length >= 3) {
+      const worst = validDow.reduce((a,b)=> b.valence < a.valence ? b : a);
+      const best  = validDow.reduce((a,b)=> b.valence > a.valence ? b : a);
+      if (best.valence - worst.valence >= 0.25) {
+        ins.push({ icon:'📅', text:`${worst.name}요일에 가장 처지고, ${best.name}요일에 가장 좋았어요.`, tone:'info' });
+      }
+    }
+    // 시간대 패턴
+    const validHour = out.hourPattern.filter(h => h.n >= 2 && h.valence !== null);
+    if (validHour.length >= 2) {
+      const wh = validHour.reduce((a,b)=> b.valence < a.valence ? b : a);
+      const bh = validHour.reduce((a,b)=> b.valence > a.valence ? b : a);
+      if (bh.valence - wh.valence >= 0.25) {
+        ins.push({ icon:'🕐', text:`${wh.name}에 기분이 낮고, ${bh.name}에 가장 좋은 편이에요.`, tone:'info' });
+      }
+    }
+    // 색 패턴
+    if (out.colorTop.length && out.colorTop[0].n >= 3) {
+      ins.push({ icon:'🎨', text:`요즘 ${out.colorTop[0].name}을 자주 고르셨어요 (${out.colorTop[0].n}번).`, tone:'info' });
+    }
+    // HRV 상관
+    if (out.hrvLink && out.hrvLink.n >= 3) {
+      const r = out.hrvLink.r;
+      if (r >= 0.4) ins.push({ icon:'💓', text:`마음이 좋은 날, 심박변이도(HRV)도 높게 나왔어요. 몸과 마음이 함께 가고 있어요.`, tone:'good' });
+      else if (r <= -0.4) ins.push({ icon:'💓', text:`마음이 좋은 날 오히려 HRV가 낮았어요. 신체 피로가 있는지 살펴보세요.`, tone:'warn' });
+      else ins.push({ icon:'💓', text:`마음 상태와 심박변이도를 ${out.hrvLink.n}일치 함께 기록했어요.`, tone:'neutral' });
+    }
+    // 데이터 부족 안내
+    if (out.count < 5) {
+      ins.unshift({ icon:'🌱', text:`${5 - out.count}번 더 측정하면 나만의 패턴이 보이기 시작해요.`, tone:'neutral' });
+    }
+    out.insights = ins;
+    return out;
+  },
+
   _computeIntegratedEmotion() {
     const s = this._moodState;
 
@@ -9905,6 +10131,7 @@ const App = {
       // 전체 mental 객체 계산 (모든 필수 필드 포함)
       const mentalFull = this._computeMentalWellnessScore(analysisInput);
 
+      const now2 = new Date();
       const entry = {
         t: Date.now(),
         gameId: 'integrated',
@@ -9920,6 +10147,13 @@ const App = {
         loneliness: analysisInput.loneliness,
         rawData: analysisInput.rawData,
         faceLink: analysisInput.faceLink,
+        // ★ v28.0: 마음 추이 분석용 필드
+        dow: now2.getDay(),              // 요일 0=일 ~ 6=토
+        hour: now2.getHours(),           // 시간대 0~23
+        colorHex: (this._moodState.colorChoice && this._moodState.colorChoice.hex) || null,
+        colorName: (this._moodState.colorChoice && this._moodState.colorChoice.name) || null,
+        energy: (typeof this._moodState.energyLevel === 'number') ? this._moodState.energyLevel : null,
+        reliability: (typeof result.responseReliability === 'number') ? result.responseReliability : null,
         // ★ v16.8: 완전한 mental 객체 (모든 필드 포함)
         mental: mentalFull,
         score: mentalFull.overall,
@@ -9932,6 +10166,19 @@ const App = {
         card: result.cardId,
         confidence: Math.round(result.confidence * 100),
       });
+
+      // ★ v28.0: 감정 결과 음성 안내
+      try {
+        let vmsg = `측정이 끝났습니다. 지금 마음은 ${card.ko}에 가까워요.`;
+        if (card.desc) {
+          const short = String(card.desc).split('.')[0];
+          if (short && short.length < 60) vmsg += ` ${short}.`;
+        }
+        if (typeof result.responseReliability === 'number' && result.responseReliability < 60) {
+          vmsg += ' 응답이 비슷하게 나와서 참고용으로만 봐주세요.';
+        }
+        setTimeout(() => this._speak(vmsg), 500);
+      } catch (ve) {}
     } catch (e) {
       console.warn('Save integrated result failed:', e);
     }
@@ -11648,6 +11895,90 @@ const App = {
   },
 
   // ─── 감정 일지 (시계열) ───
+  // ★ v28.0: 마음 추이 카드 HTML 생성
+  _renderMindTrendCard() {
+    let t;
+    try { t = this._computeMindTrend(30); } catch (e) { return ''; }
+    if (!t || !t.ok || t.count === 0) return '';
+
+    // ── 미니 라인차트 (SVG) ──
+    const S = t.series;
+    let chart = '';
+    if (S.length >= 2) {
+      const W = 300, H = 90, pad = 6;
+      const xs = (i) => pad + (i / (S.length - 1)) * (W - pad*2);
+      // valence -1~1 → y
+      const ys = (v) => pad + ((1 - v) / 2) * (H - pad*2);
+      const pts = S.map((s,i) => `${xs(i).toFixed(1)},${ys(s.valence).toFixed(1)}`).join(' ');
+      const area = `${pad},${H-pad} ${pts} ${(W-pad)},${H-pad}`;
+      const dots = S.map((s,i) => {
+        const c = s.color || (s.valence >= 0 ? '#7DD3A0' : '#F0A0A0');
+        return `<circle cx="${xs(i).toFixed(1)}" cy="${ys(s.valence).toFixed(1)}" r="3.2" fill="${c}" stroke="#fff" stroke-width="1.2"/>`;
+      }).join('');
+      chart = `
+        <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block">
+          <line x1="${pad}" y1="${ys(0)}" x2="${W-pad}" y2="${ys(0)}"
+                stroke="rgba(255,255,255,.35)" stroke-width="1" stroke-dasharray="3 3"/>
+          <polygon points="${area}" fill="rgba(255,255,255,.14)"/>
+          <polyline points="${pts}" fill="none" stroke="#FFFFFF" stroke-width="2.4"
+                    stroke-linejoin="round" stroke-linecap="round"/>
+          ${dots}
+        </svg>`;
+    }
+
+    // ── 요일 막대 ──
+    const dowValid = t.dowPattern.filter(d => d.n > 0);
+    let dowHTML = '';
+    if (dowValid.length >= 3) {
+      dowHTML = `<div class="mt-dow">` + t.dowPattern.map(d => {
+        if (d.n === 0) return `<div class="mt-dow-col"><div class="mt-dow-bar empty"></div><div class="mt-dow-name">${d.name}</div></div>`;
+        const h = Math.max(8, Math.round(((d.valence + 1) / 2) * 46));
+        const cls = d.valence >= 0.15 ? 'good' : (d.valence <= -0.15 ? 'low' : 'mid');
+        return `<div class="mt-dow-col">
+          <div class="mt-dow-bar ${cls}" style="height:${h}px"></div>
+          <div class="mt-dow-name">${d.name}</div>
+        </div>`;
+      }).join('') + `</div>`;
+    }
+
+    // ── 인사이트 ──
+    const insHTML = (t.insights || []).slice(0, 4).map(i =>
+      `<div class="mt-ins ${i.tone}"><span class="mt-ins-ic">${i.icon}</span><span class="mt-ins-tx">${this._esc(i.text)}</span></div>`
+    ).join('');
+
+    // ── 요약 수치 ──
+    const trendIcon = t.trend >= 0.15 ? '📈' : (t.trend <= -0.15 ? '📉' : '➡️');
+    const trendTxt  = t.trend >= 0.15 ? '좋아지는 중' : (t.trend <= -0.15 ? '가라앉는 중' : '안정적');
+    const energyTxt = t.avgEnergy != null ? `${t.avgEnergy}/10` : '–';
+
+    return `
+      <div class="mind-trend-card">
+        <div class="mt-head">
+          <div class="mt-title">🌈 마음 추이 <span class="mt-sub">최근 30일</span></div>
+          <div class="mt-badge">${t.count}회 기록</div>
+        </div>
+
+        <div class="mt-stats">
+          <div class="mt-stat"><div class="mt-stat-v">${trendIcon}</div><div class="mt-stat-l">${trendTxt}</div></div>
+          <div class="mt-stat"><div class="mt-stat-v">${t.avgValence > 0 ? '+' : ''}${t.avgValence}</div><div class="mt-stat-l">평균 기분</div></div>
+          <div class="mt-stat"><div class="mt-stat-v">${energyTxt}</div><div class="mt-stat-l">평균 에너지</div></div>
+        </div>
+
+        ${chart ? `<div class="mt-chart">${chart}
+          <div class="mt-chart-legend"><span>😔 낮음</span><span>😊 높음</span></div>
+        </div>` : ''}
+
+        ${dowHTML ? `<div class="mt-section-t">요일별 마음</div>${dowHTML}` : ''}
+
+        ${insHTML ? `<div class="mt-section-t">발견한 패턴</div><div class="mt-ins-wrap">${insHTML}</div>` : ''}
+
+        ${t.hrvLink ? `<div class="mt-hrv">💓 심박변이도와 함께 기록한 날: ${t.hrvLink.n}일 · 평균 RMSSD ${t.hrvLink.avgRmssd}ms</div>` : ''}
+
+        <div class="mt-note">※ 마음 추이는 내가 남긴 기록으로 만든 참고 자료입니다. 진단이 아닙니다.</div>
+      </div>
+    `;
+  },
+
   _showMoodHistory() {
     let history = [];
     try { history = JSON.parse(localStorage.getItem('history_mood') || '[]'); } catch (e) {}
@@ -11688,6 +12019,7 @@ const App = {
 
     container.innerHTML = `
       <div class="mood-history">
+        ${this._renderMindTrendCard()}
         <div class="history-summary">
           ${this._renderHistorySummary(history)}
         </div>
@@ -12158,15 +12490,28 @@ const App = {
       text.textContent = Math.ceil(remain) + '초 남음';
       if (remain <= 10) chip.classList.add('urgent');
 
-      // ★ v13.4: 음성 안내 (중간 + 5초 전)
+      // ★ v28.0: 음성 안내 세분화 (시작 직후 / 절반 / 10초 / 5초 / 3초)
       const remainCeil = Math.ceil(remain);
+      const total2 = this.config.face.durationSec;
+      if (remainCeil === total2 - 5 && !f._speakStart5) {
+        f._speakStart5 = true;
+        this._speak('좋아요. 얼굴을 화면 안에 그대로 두세요.');
+      }
       if (remainCeil === 15 && !f._speak15) {
         f._speak15 = true;
         this._speak('절반 지났어요. 그대로 유지해주세요.');
       }
+      if (remainCeil === 10 && !f._speak10) {
+        f._speak10 = true;
+        this._speak('10초 남았습니다.');
+      }
       if (remainCeil === 5 && !f._speak5) {
         f._speak5 = true;
-        this._speak('5초 남았습니다');
+        this._speak('5초 남았습니다. 조금만 더요.');
+      }
+      if (remainCeil === 3 && !f._speak3) {
+        f._speak3 = true;
+        this._speak('3초');
       }
     } else {
       text.textContent = '✅ 측정 완료';
@@ -12174,8 +12519,8 @@ const App = {
       if (!f.autoFinalized) {
         f.autoFinalized = true;
         console.log('[Face] 30초 도달 — 자동 완료');
-        // ★ v13.4: 측정 완료 음성
-        this._speak('얼굴 측정이 완료되었습니다. 결과를 확인하세요.');
+        // ★ v28.0: 측정 완료 음성 (분석 대기 안내 포함)
+        this._speak('측정이 끝났습니다. 이제 편하게 계세요. 결과를 분석하고 있어요.');
         this._faceFinalize();
       }
     }
@@ -12968,6 +13313,17 @@ const App = {
         this._faceDisplayResults(result);
         document.getElementById('face-cam-msg').textContent = '✅ 측정 완료';
         document.getElementById('face-cam-sub').textContent = '결과 패널을 확인하세요';
+        // ★ v28.0: 얼굴 측정 결과 음성 안내
+        try {
+          let vmsg = `분석이 끝났습니다. 심박수는 분당 ${result.hr}회입니다.`;
+          if (result.stressLevel) vmsg += ` 스트레스는 ${result.stressLevel} 수준이에요.`;
+          if (typeof result.sqi === 'number' && result.sqi < 55) {
+            vmsg += ' 신호 품질이 낮아 참고용으로만 봐주세요.';
+          } else {
+            vmsg += ' 자세한 내용은 화면에서 확인하세요.';
+          }
+          setTimeout(() => this._speak(vmsg), 500);
+        } catch (e) {}
       } else {
         const reasons = {
           'not_converged': 'ME-rPPG 모델이 충분히 수렴하지 못했습니다.\n조명을 밝게 하고 가만히 있는 상태로 다시 측정해주세요.',
@@ -12978,6 +13334,14 @@ const App = {
         const msg = reasons[result.reason] || '측정에 실패했습니다.';
         document.getElementById('face-cam-msg').textContent = '⚠️ 측정 실패';
         document.getElementById('face-cam-sub').textContent = '아래 안내 확인';
+        // ★ v28.0: 실패 음성 안내 (사유별)
+        const voiceReasons = {
+          'not_converged': '측정에 실패했습니다. 조명을 더 밝게 하고, 움직이지 않은 상태로 다시 측정해 주세요.',
+          'no_face': '얼굴이 잘 보이지 않았습니다. 밝은 곳에서 얼굴을 화면 가운데에 맞추고 다시 측정해 주세요.',
+          'insufficient_data': '측정 시간이 부족했습니다. 30초 동안 유지하며 다시 측정해 주세요.',
+          'compute_error': '분석 중 오류가 생겼습니다. 다시 측정해 주세요.',
+        };
+        setTimeout(() => this._speak(voiceReasons[result.reason] || '측정에 실패했습니다. 다시 시도해 주세요.'), 400);
         setTimeout(() => alert('측정 실패\n\n' + msg), 800);
       }
     } catch (err) {
@@ -15279,7 +15643,8 @@ const App = {
       this.state.body.timerInterval = setInterval(() => {
         remain--;
         document.getElementById('bt-balance-timer').textContent = remain;
-        if (remain === 5) this._speak('5초 남았습니다');
+        if (remain === 10) this._speak('10초 남았습니다.');
+        if (remain === 5) this._speak('5초 남았습니다.');
         if (remain === 0) {
           if (b.phase === 'eyes_open') {
             b.openSamples = [...b.samples];
@@ -15289,10 +15654,10 @@ const App = {
             remain = 15;
             document.getElementById('bt-balance-timer').textContent = remain;
             if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            this._speak('이제 눈을 감으세요. 그대로 15초간 가만히 서있으세요.');
+            this._speak('첫 번째 단계가 끝났습니다. 이제 눈을 감으세요. 그대로 15초간 가만히 서 계세요. 넘어지지 않게 조심하세요.');
           } else {
             b.closedSamples = [...b.samples];
-            this._speak('측정이 완료되었습니다.');
+            this._speak('균형 검사가 끝났습니다. 눈을 뜨셔도 됩니다. 결과를 분석하고 있어요.');
             // ★ v13.9: 음성을 끊지 않도록 finalize 후 bodyStop은 음성 보존 모드
             this._finalizeBalance(true);
           }
@@ -15931,9 +16296,12 @@ const App = {
           this.state.body.gait.steps = steps;
           document.getElementById('bt-gait-steps').textContent = steps;
         }
-        if (remain === 5) this._speak('5초 남았습니다');
+        if (remain === 20) this._speak('좋아요. 평소 속도로 계속 걸어주세요.');
+        if (remain === 15) this._speak('절반 지났습니다.');
+        if (remain === 10) this._speak('10초 남았습니다.');
+        if (remain === 5) this._speak('5초 남았습니다.');
         if (remain === 0) {
-          this._speak('보행 측정이 완료되었습니다.');
+          this._speak('보행 측정이 끝났습니다. 이제 멈추셔도 됩니다. 결과를 분석하고 있어요.');
           this._finalizeGait(true);
         }
       }, 1000);
@@ -16114,9 +16482,10 @@ const App = {
       this.state.body.timerInterval = setInterval(() => {
         remain--;
         document.getElementById('bt-tremor-timer').textContent = remain;
-        if (remain === 5) this._speak('5초 남았습니다');
+        if (remain === 10) this._speak('10초 남았습니다. 팔을 그대로 유지하세요.');
+        if (remain === 5) this._speak('5초 남았습니다.');
         if (remain === 0) {
-          this._speak('손떨림 측정이 완료되었습니다.');
+          this._speak('손떨림 측정이 끝났습니다. 팔을 내리셔도 됩니다. 결과를 분석하고 있어요.');
           this._finalizeTremor(true);
         }
       }, 1000);

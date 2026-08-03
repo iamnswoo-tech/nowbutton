@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>건강 측정 v27 — ME-rPPG</title>
+<title>건강 측정 v19 — ME-rPPG</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -11902,6 +11902,148 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
   text-shadow: none !important;
   background: transparent !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v28.0 — 마음 추이 (Mind Trend) 카드
+   SKY 테마 준수: 어두운 반투명 유리 + 흰 글씨 (WCAG AA)
+   ══════════════════════════════════════════════════════════════════ */
+
+.mind-trend-card {
+  background: rgba(18, 60, 105, .46) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  border-radius: 24px !important;
+  padding: 20px 18px !important;
+  margin-bottom: 16px !important;
+  -webkit-backdrop-filter: blur(16px) saturate(125%) !important;
+  backdrop-filter: blur(16px) saturate(125%) !important;
+  box-shadow: 0 6px 22px rgba(8,40,80,.18) !important;
+  color: #FFFFFF !important;
+}
+.mind-trend-card * { color: #FFFFFF !important; }
+
+/* 헤더 */
+.mt-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 14px;
+}
+.mt-title {
+  font-size: 17px; font-weight: 800; letter-spacing: -.02em;
+  text-shadow: 0 1px 4px rgba(5,25,55,.55) !important;
+}
+.mt-sub {
+  font-size: 12px; font-weight: 600; opacity: .85; margin-left: 4px;
+}
+.mt-badge {
+  background: rgba(255,255,255,.20) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  border-radius: 999px; padding: 5px 12px;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+
+/* 요약 수치 3칸 */
+.mt-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 16px;
+}
+.mt-stat {
+  background: rgba(10,45,85,.40) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 14px; padding: 12px 6px; text-align: center;
+}
+.mt-stat-v {
+  font-size: 20px; font-weight: 800; line-height: 1.2;
+  text-shadow: 0 1px 4px rgba(5,25,55,.5) !important;
+}
+.mt-stat-l {
+  font-size: 11px; font-weight: 600; opacity: .88; margin-top: 4px;
+}
+
+/* 라인차트 */
+.mt-chart {
+  background: rgba(10,45,85,.34) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  border-radius: 16px; padding: 10px 8px 8px; margin-bottom: 16px;
+}
+.mt-chart svg { overflow: visible; }
+.mt-chart-legend {
+  display: flex; justify-content: space-between;
+  font-size: 11px; font-weight: 600; opacity: .82;
+  padding: 6px 4px 0;
+}
+
+/* 섹션 제목 */
+.mt-section-t {
+  font-size: 13px; font-weight: 800; margin: 0 0 9px 2px;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+
+/* 요일 막대 */
+.mt-dow {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 6px; align-items: end; margin-bottom: 16px;
+  background: rgba(10,45,85,.34) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  border-radius: 16px; padding: 12px 10px 10px;
+}
+.mt-dow-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mt-dow-bar {
+  width: 100%; max-width: 26px; border-radius: 7px 7px 3px 3px;
+  min-height: 8px; transition: height .3s ease;
+}
+.mt-dow-bar.good  { background: linear-gradient(180deg,#7DD3A0,#4FB07A) !important; }
+.mt-dow-bar.mid   { background: linear-gradient(180deg,#9FC7E8,#6FA3CC) !important; }
+.mt-dow-bar.low   { background: linear-gradient(180deg,#F0A8A8,#D07878) !important; }
+.mt-dow-bar.empty {
+  background: rgba(255,255,255,.14) !important;
+  border: 1px dashed rgba(255,255,255,.26) !important; height: 10px;
+}
+.mt-dow-name {
+  font-size: 11px; font-weight: 700; opacity: .92;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+
+/* 인사이트 */
+.mt-ins-wrap { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.mt-ins {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(10,45,85,.40) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  border-left: 3px solid rgba(255,255,255,.45) !important;
+  border-radius: 12px; padding: 11px 13px;
+}
+.mt-ins.good  { border-left-color: #7DD3A0 !important; }
+.mt-ins.warn  { border-left-color: #FFC46B !important; }
+.mt-ins.info  { border-left-color: #9FC7E8 !important; }
+.mt-ins-ic { font-size: 16px; line-height: 1.4; flex-shrink: 0; }
+.mt-ins-tx {
+  font-size: 13px; font-weight: 600; line-height: 1.55;
+  text-shadow: 0 1px 3px rgba(5,25,55,.45) !important;
+}
+
+/* HRV 연결 */
+.mt-hrv {
+  background: rgba(10,45,85,.40) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 12px; padding: 11px 13px; margin-bottom: 12px;
+  font-size: 12px; font-weight: 600; line-height: 1.5;
+  text-shadow: 0 1px 3px rgba(5,25,55,.45) !important;
+}
+
+/* 면책 */
+.mt-note {
+  font-size: 11px; font-weight: 500; line-height: 1.5;
+  opacity: .82; text-align: center; padding-top: 2px;
+  text-shadow: 0 1px 3px rgba(5,25,55,.45) !important;
+}
+
+/* 좁은 화면 대응 */
+@media (max-width: 360px) {
+  .mt-stat-v { font-size: 17px; }
+  .mt-stat-l { font-size: 10px; }
+  .mt-dow { gap: 4px; padding: 10px 7px 8px; }
+  .mt-dow-name { font-size: 10px; }
+}
 </style>
 </head>
 <body>
@@ -11917,16 +12059,16 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
       </svg>
     </div>
     <div>
-      <div class="hd-title">Reset Button For You</div>
+      <div class="hd-title">오늘의 활력 버튼</div>
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v27.3 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v28.0 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->
 <div class="page on" id="page-home">
-  <!-- ★ v27.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
+  <!-- ★ v22.0: 동적 건강 요약 히어로 (측정 데이터 있을 때) -->
   <div id="home-hero-dynamic"></div>
 
   <div class="hero" id="home-hero-default">
@@ -13200,8 +13342,8 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
     <span style="color:#9ca3af">⚠️ 본 앱은 의료기기가 아닌 건강 참고용 도구입니다.</span>
   </div>
 
-  v27.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
-  💡현명한 건강지킴 Reset Button💡
+  v19.0 · 얼굴/손가락/심리 + 신체 측정 분리<br>
+  ✉ Reset Button 문의: iamnsw@naver.com
 </footer>
 
 <script src="app.js"></script>
