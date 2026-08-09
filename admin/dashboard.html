@@ -831,7 +831,7 @@ function mkDoughnut(id, labels, data, colors) {
 // RENDER OVERVIEW
 // ════════════════════════════════════════════════════════════════
 function renderOverview(data) {
-  const d = data || DEMO;
+  const d = data || window.__lastStats || emptyStats();
   window.__lastStats = d; // ★ v24.7: 실제 데이터 전역 저장 (다른 페이지 공유)
   try { renderCarePage(d); } catch (e) { console.warn('care render:', e); } // ★ v29.0
 
@@ -1098,11 +1098,38 @@ function addRealtimeEvent(ev) {
   if (feed.children.length > 100) feed.removeChild(feed.lastChild);
 }
 
+// ★ v30.1: 실제 서버의 최근 측정을 폴링 (가짜 이벤트 생성 제거)
+let rtSeen = new Set();
+function startRealtimePoll() {
+  if (rtInterval) return;
+  const poll = async () => {
+    try {
+      const data = await fetchRealStats(1);
+      const recent = (data.recent || []).slice().reverse();
+      let added = 0;
+      for (const ev of recent) {
+        const key = `${ev.t}_${ev.sid || ''}_${ev.category || ''}`;
+        if (rtSeen.has(key)) continue;
+        rtSeen.add(key);
+        addRealtimeEvent(ev);
+        added++;
+      }
+      if (rtSeen.size > 500) rtSeen = new Set(Array.from(rtSeen).slice(-300));
+      const dot = document.querySelector('.live-dot, .badge-live');
+      if (dot) dot.style.opacity = '1';
+    } catch (e) {
+      console.warn('[Realtime] 폴링 실패:', e.message);
+    }
+  };
+  poll();
+  rtInterval = setInterval(poll, 20000); // 20초마다
+}
+
+// (구) 데모 시뮬레이션 — 더 이상 사용하지 않음
 function startRealtimeSim() {
-  // 실제 API 없을 때 데모 이벤트 시뮬레이션
   if (rtInterval) return;
   rtInterval = setInterval(() => {
-    if (document.getElementById('page-realtime').classList.contains('active') || Math.random() < 0.3) {
+    if (false) {
       const cat = CATS[rnd(0,CATS.length-1)];
       addRealtimeEvent({
         t: Date.now(), type:'measurement_complete',
@@ -1119,7 +1146,8 @@ function startRealtimeSim() {
 // ════════════════════════════════════════════════════════════════
 function renderAnalyticsPage() {
   const catGrid = document.getElementById('cat-cards');
-  const cats = Object.entries(DEMO.categories).sort((a,b)=>b[1]-a[1]);
+  const _s = window.__lastStats || emptyStats();
+  const cats = Object.entries(_s.categories || {}).sort((a,b)=>b[1]-a[1]);
   const total = cats.reduce((s,[,v])=>s+v,0);
   catGrid.innerHTML = cats.slice(0,6).map(([cat, count]) => {
     const pct = total>0 ? Math.round(count/total*100) : 0;
@@ -1136,11 +1164,12 @@ function renderAnalyticsPage() {
 
   // 14일 트렌드 (주요 카테고리 4개)
   const mainCats = ['face','finger','mood','balance'];
-  const labels = DEMO.daily.slice(-14).map(d=>d.date.slice(5));
+  const _s2 = window.__lastStats || emptyStats();
+  const labels = (_s2.daily||[]).slice(-14).map(d=>d.date.slice(5));
   const datasets = mainCats.map(cat => ({
     label: CAT_LABELS[cat],
-    data: DEMO.daily.slice(-14).map(d => {
-      const base = (DEMO.categories[cat]||10)/30;
+    data: (_s2.daily||[]).slice(-14).map(d => {
+      const base = ((_s2.categories||{})[cat]||0)/30;
       return Math.max(0, Math.round(base * rndFloat(0.5,1.5)));
     }),
     borderColor: CAT_COLORS[cat],
@@ -1154,7 +1183,7 @@ function renderAnalyticsPage() {
 // USERS PAGE
 // ════════════════════════════════════════════════════════════════
 function renderUsersPage() {
-  const d = window.__lastStats || DEMO;
+  const d = window.__lastStats || emptyStats();
   const devices = (d.totals.devices != null ? d.totals.devices : d.totals.sessions) || 0;
   document.getElementById('u-total-sessions').textContent = devices.toLocaleString();
   document.getElementById('u-today-sessions').textContent = (d.today?.users || d.daily.at(-1)?.users || 0);
@@ -1313,7 +1342,8 @@ function copyCode(id) {
 // ════════════════════════════════════════════════════════════════
 function exportCSV() {
   const rows = [['날짜','측정수','세션수']];
-  DEMO.daily.forEach(d => rows.push([d.date, d.measurements, d.users]));
+  const _sc = window.__lastStats || emptyStats();
+  (_sc.daily||[]).forEach(d => rows.push([d.date, d.measurements, d.users]));
   const csv = rows.map(r=>r.join(',')).join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'}));
@@ -1324,19 +1354,99 @@ function exportCSV() {
 // ════════════════════════════════════════════════════════════════
 // REFRESH
 // ════════════════════════════════════════════════════════════════
-function refreshData() {
-  DEMO = genDemoData(); // 실제 배포 시 fetch('/api/beacon?days=30&token=...') 로 교체
-  renderOverview(DEMO);
+// ★ v30.1: 실제 서버 데이터 연결 (가짜 데모 데이터 제거)
+let USING_DEMO = false;
+
+async function fetchRealStats(days = 30) {
+  const token = (window.CONFIG && CONFIG.adminToken) || localStorage.getItem('yb_admin_token') || 'yb-admin-2026';
+  const res = await fetch(`/api/beacon?days=${days}&token=${encodeURIComponent(token)}`, {
+    headers: { 'X-YB-Token': token },
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(res.status === 401 ? '인증 실패 (토큰 확인 필요)' : `서버 오류 ${res.status}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '데이터 오류');
+  return json;
+}
+
+async function refreshData(showToast) {
+  const btn = document.querySelector('[onclick*="refreshData"]');
+  if (btn) btn.style.opacity = '.5';
+  try {
+    const data = await fetchRealStats(30);
+    USING_DEMO = false;
+    setDataBanner(false, data);
+    renderOverview(data);
+    if (showToast) console.log('[Dashboard] 실데이터 갱신 완료');
+  } catch (e) {
+    console.warn('[Dashboard] 실데이터 로드 실패:', e.message);
+    USING_DEMO = true;
+    setDataBanner(true, null, e.message);
+    // 실패 시 빈 데이터로 표시 (가짜 숫자 금지)
+    renderOverview(emptyStats());
+  } finally {
+    if (btn) btn.style.opacity = '1';
+  }
+}
+
+// 데이터가 없을 때 표시할 빈 구조 (허수 방지)
+function emptyStats() {
+  const daily = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    daily.push({ date: d.toISOString().slice(0,10), measurements: 0, users: 0 });
+  }
+  const categories = {};
+  CATS.forEach(c => categories[c] = 0);
+  return {
+    daily, categories,
+    totals: { measurements: 0, sessions: 0, devices: 0 },
+    today: { measurements: 0, users: 0 },
+    recent: [], users: [],
+    care: { total:0, inactive3:0, inactive7:0, moodDown:0, alerts:[] },
+  };
+}
+
+// 상단 데이터 상태 배너
+function setDataBanner(isError, data, msg) {
+  let b = document.getElementById('data-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'data-banner';
+    b.style.cssText = 'margin:0 0 16px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px';
+    const main = document.querySelector('.main') || document.querySelector('#page-overview');
+    if (main) main.insertBefore(b, main.firstChild);
+  }
+  if (isError) {
+    b.style.background = 'rgba(239,68,68,.12)';
+    b.style.color = '#fca5a5';
+    b.style.border = '1px solid rgba(239,68,68,.3)';
+    b.innerHTML = `<i class="ti ti-alert-triangle"></i><span>서버 데이터를 불러오지 못했습니다 — ${msg || '연결 실패'}. 표시된 값은 0입니다. (KV 미설정 시 데이터가 저장되지 않습니다)</span>`;
+  } else {
+    const total = (data && data.totals && data.totals.measurements) || 0;
+    if (total === 0) {
+      b.style.background = 'rgba(245,158,11,.12)';
+      b.style.color = '#fcd34d';
+      b.style.border = '1px solid rgba(245,158,11,.3)';
+      b.innerHTML = `<i class="ti ti-info-circle"></i><span>실제 측정 데이터입니다. 아직 기록이 없습니다 (0건). 앱에서 측정하면 여기에 반영됩니다.</span>`;
+    } else {
+      b.style.background = 'rgba(34,197,94,.12)';
+      b.style.color = '#86efac';
+      b.style.border = '1px solid rgba(34,197,94,.3)';
+      b.innerHTML = `<i class="ti ti-circle-check"></i><span>실제 측정 데이터 · 총 ${total.toLocaleString()}건</span>`;
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════════
 function initDashboard() {
-  renderOverview(DEMO);
-  startRealtimeSim();
-  // 5분마다 자동 새로고침
-  setInterval(refreshData, 5 * 60 * 1000);
+  // ★ v30.1: 가짜 데모 대신 실데이터 로드
+  renderOverview(emptyStats());   // 우선 빈 화면 (허수 방지)
+  refreshData();                   // 실제 서버 조회
+  startRealtimePoll();             // 실시간도 서버 기반
+  setInterval(() => refreshData(), 3 * 60 * 1000);
 }
 
 if (AUTHED) initDashboard();

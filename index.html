@@ -7,7 +7,29 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>건강 측정 v19 — ME-rPPG</title>
+<title>오늘의 활력 버튼 — 30초 스마트폰 건강 측정 (무료)</title>
+
+<!-- ★ v30.0: 공유 최적화 (카카오톡·문자·SNS 미리보기) -->
+<meta name="description" content="앱 설치 없이 스마트폰 카메라로 30초 만에 심박·스트레스·감정·균형을 확인하세요. 부모님께도 알려드리세요. 완전 무료, 개인정보 수집 없음.">
+<meta name="keywords" content="건강측정,심박수측정,스트레스측정,어르신건강,부모님건강,무료건강앱,낙상,두뇌컨디션">
+
+<!-- Open Graph (카카오톡·페이스북) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="오늘의 활력 버튼">
+<meta property="og:title" content="30초면 충분해요 — 스마트폰으로 건강 확인">
+<meta property="og:description" content="앱 설치 없이 카메라로 심박·스트레스·감정·균형을 측정해요. 부모님께 알려드리세요. 무료입니다.">
+<meta property="og:image" content="https://nowbutton.vercel.app/icons/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="30초 스마트폰 건강 측정">
+<meta property="og:url" content="https://nowbutton.vercel.app/">
+<meta property="og:locale" content="ko_KR">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="30초면 충분해요 — 스마트폰으로 건강 확인">
+<meta name="twitter:description" content="앱 설치 없이 카메라로 심박·스트레스·감정·균형을 측정해요. 무료입니다.">
+<meta name="twitter:image" content="https://nowbutton.vercel.app/icons/og-image.png">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -12399,6 +12421,151 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
   font-size: 11.5px; line-height: 1.6; color: #065F46 !important;
 }
 .care-privacy strong { color: #064E3B !important; font-weight: 800; }
+
+/* ══════════════════════════════════════════════════════════════════
+   ★ v30.0 확산 (공유 + 자녀용 설치 안내)
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── 홈 확산 카드 ── */
+.spread-card {
+  background: rgba(18,60,105,.46) !important;
+  border: 1px solid rgba(255,255,255,.30) !important;
+  border-radius: 22px !important;
+  padding: 20px 17px !important;
+  margin-bottom: 16px !important;
+  text-align: center;
+  -webkit-backdrop-filter: blur(16px) saturate(125%) !important;
+  backdrop-filter: blur(16px) saturate(125%) !important;
+}
+.spread-card * { color: #FFFFFF !important; }
+.spread-emoji { font-size: 36px; margin-bottom: 8px; }
+.spread-title {
+  font-size: 17px; font-weight: 800; margin-bottom: 7px;
+  text-shadow: 0 1px 4px rgba(5,25,55,.55) !important;
+}
+.spread-sub {
+  font-size: 13px; line-height: 1.6; opacity: .92; margin-bottom: 15px;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+.spread-btns { display: flex; flex-direction: column; gap: 9px; margin-bottom: 11px; }
+.spread-btn {
+  width: 100%; padding: 14px; border-radius: 15px;
+  font-size: 14.5px; font-weight: 800; cursor: pointer;
+  background: rgba(255,255,255,.20) !important;
+  border: 1px solid rgba(255,255,255,.32) !important;
+  color: #FFFFFF !important;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+.spread-btn.primary {
+  background: #2563EB !important;
+  border: none !important;
+  text-shadow: none !important;
+  box-shadow: 0 4px 14px rgba(37,99,235,.35);
+}
+.spread-btn:active { transform: scale(.98); }
+.spread-note {
+  font-size: 11px; opacity: .82;
+  text-shadow: 0 1px 3px rgba(5,25,55,.5) !important;
+}
+
+/* ── 결과 화면 공유 버튼 ── */
+.result-share-btn {
+  width: 100%; margin-top: 11px; padding: 15px; border-radius: 15px;
+  background: #EFF6FF !important; color: #1E40AF !important;
+  border: 1.5px solid #BFDBFE !important;
+  font-size: 14.5px; font-weight: 800; cursor: pointer;
+  text-shadow: none !important;
+}
+.result-share-btn:active { transform: scale(.98); }
+
+/* ── 공유 선택 시트 ── */
+.share-opt {
+  display: flex; align-items: center; gap: 13px; width: 100%;
+  padding: 15px 14px; margin-bottom: 9px; border-radius: 15px;
+  background: #F7F9FC !important;
+  border: 1.5px solid rgba(15,23,42,.08) !important;
+  cursor: pointer; text-align: left;
+}
+.share-opt:active { transform: scale(.98); background: #EEF2F7 !important; }
+.share-opt-ic { font-size: 26px; flex-shrink: 0; }
+.share-opt-tx { display: flex; flex-direction: column; gap: 3px; }
+.share-opt-tx strong {
+  font-size: 14.5px; font-weight: 800; color: #14243D !important;
+}
+.share-opt-tx small {
+  font-size: 12px; color: #52606D !important; line-height: 1.45;
+}
+
+/* ── 자녀용 설치 안내 ── */
+.pg-card {
+  max-width: 400px; width: 100%; padding: 22px 20px;
+  margin: 8px 0 24px; max-height: none;
+}
+.pg-head { text-align: center; margin-bottom: 16px; }
+.pg-title { font-size: 19px; font-weight: 800; color: #14243D !important; margin-bottom: 5px; }
+.pg-sub { font-size: 12.5px; color: #4B5563 !important; }
+
+.pg-tabs {
+  display: flex; gap: 7px; margin-bottom: 16px;
+  background: #F1F3F6 !important; padding: 5px; border-radius: 13px;
+}
+.pg-tab {
+  flex: 1; padding: 10px; border-radius: 10px; cursor: pointer;
+  font-size: 13.5px; font-weight: 700;
+  background: transparent !important; border: none !important;
+  color: #52606D !important;
+}
+.pg-tab.on {
+  background: #FFFFFF !important; color: #14243D !important; font-weight: 800;
+  box-shadow: 0 2px 6px rgba(10,35,70,.10);
+}
+
+.pg-step {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 0; border-bottom: 1px solid rgba(15,23,42,.07);
+}
+.pg-step:last-child { border-bottom: none; }
+.pg-n {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: #2563EB !important; color: #FFFFFF !important;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+}
+.pg-step strong {
+  display: block; font-size: 14.5px; font-weight: 800;
+  color: #14243D !important; margin-bottom: 5px;
+}
+.pg-step small {
+  font-size: 12.5px; line-height: 1.6; color: #4B5563 !important; display: block;
+}
+.pg-step small b { color: #1E40AF !important; font-weight: 800; }
+.pg-url {
+  background: #EFF6FF !important; color: #1E40AF !important;
+  border: 1px solid #BFDBFE !important; border-radius: 9px;
+  padding: 9px 11px; margin: 6px 0; font-size: 12.5px;
+  font-family: monospace; word-break: break-all; font-weight: 700;
+}
+
+.pg-tip {
+  background: #FFFBEB !important; border: 1px solid #FDE68A !important;
+  border-radius: 13px; padding: 13px 14px; margin-top: 16px;
+  font-size: 12.5px; line-height: 1.65; color: #78350F !important;
+}
+.pg-tip strong { color: #7C2D12 !important; font-weight: 800; }
+.pg-tip b { font-weight: 800; }
+
+.pg-care {
+  background: #FDF2F8 !important; border: 1px solid #FBCFE8 !important;
+  border-radius: 13px; padding: 13px 14px; margin-top: 11px;
+  font-size: 12.5px; line-height: 1.65; color: #9D174D !important;
+}
+.pg-care strong { color: #831843 !important; font-weight: 800; }
+.pg-care small { font-size: 11.5px; color: #BE185D !important; display: block; margin-top: 5px; }
+
+@media (max-width: 360px) {
+  .pg-card { padding: 18px 15px; }
+  .spread-btn { font-size: 13.5px; padding: 13px; }
+}
 </style>
 </head>
 <body>
@@ -12418,7 +12585,7 @@ button, a, input, select, textarea, [onclick], .quickf-btn, .quickc-btn,
       <div class="hd-sub">FACE + BODY + MIND</div>
     </div>
   </div>
-  <span class="hd-ver" onclick="App._toggleDebugMode()">v29.0 · BETA</span>
+  <span class="hd-ver" onclick="App._toggleDebugMode()">v30.0 · BETA</span>
 </header>
 
 <!-- ═══════════ HOME PAGE ═══════════ -->

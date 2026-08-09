@@ -2216,6 +2216,7 @@ const App = {
     // ★ v29.0: 홈 진입 시 돌봄 루프 카드 삽입 + 미측정 리마인드
     if (page === 'home') {
       try { this._injectCareCard(); } catch (e) { console.warn('[Care] 카드 삽입 실패:', e.message); }
+      try { this._injectSpreadCard(); } catch (e) { console.warn('[Spread] 카드 삽입 실패:', e.message); }
       try {
         const nudge = this._careCheckNudge();
         if (nudge) {
@@ -6314,6 +6315,10 @@ const App = {
           <button class="finger-action-btn" type="button" onclick="App.fingerRestart()">🔄 다시 측정</button>
           <button class="finger-action-btn primary" type="button" onclick="App.goPage('results')">📊 결과 보기</button>
         </div>
+        <!-- ★ v30.0: 측정 직후 공유 (의향이 가장 높은 순간) -->
+        <button class="result-share-btn" type="button" onclick="App.openShareSheet()">
+          💙 이 앱, 소중한 분께 알려주기
+        </button>
       </div>
     `;
 
@@ -10277,6 +10282,239 @@ const App = {
   //   · 상호 안부: 받은 사람도 답장 가능
   //   ※ 백엔드 없음 — 로컬 저장 + URL 공유 방식 유지
   // ══════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════
+  // ★ v30.0 앱 알리기 (확산) — 자녀·지인에게 공유
+  //   핵심 프레임: "내가 쓰는 앱" 아니라 "부모님께 알려드리세요"
+  // ══════════════════════════════════════════════════════════════
+  _appUrl() {
+    try {
+      const u = new URL(location.href);
+      u.hash = ''; u.search = '';
+      return u.toString();
+    } catch (e) { return 'https://nowbutton.vercel.app/'; }
+  },
+
+  // 공유 문구 (상황별)
+  _buildShareText(mode) {
+    const url = this._appUrl();
+    const texts = {
+      // 부모님께 권하는 자녀 관점
+      parent: `📱 부모님 폰에 이거 하나 깔아드리세요\n\n스마트폰 카메라로 30초면 심박·스트레스를 확인할 수 있어요.\n앱 설치도 필요 없고 무료예요.\n\n측정하시면 저한테 "잘 지내요" 안부도 와요 💌\n\n${url}`,
+      // 친구/지인에게
+      friend: `📱 이거 신기해서 공유해요\n\n스마트폰 카메라에 손가락만 대면 심박수가 측정돼요.\n감정·균형·두뇌 컨디션도 볼 수 있어요.\n\n설치 없이 바로 되고 무료예요.\n\n${url}`,
+      // 측정 후 결과 공유
+      result: `방금 스마트폰으로 건강 측정해봤어요 📱\n\n카메라만으로 심박·스트레스가 나오는 게 신기하네요.\n설치 없이 무료로 쓸 수 있어요.\n\n${url}`,
+      // 기본
+      default: `📱 30초 건강 측정\n\n스마트폰 카메라로 심박·스트레스·감정을 확인해요.\n앱 설치 없이 무료입니다.\n\n${url}`,
+    };
+    return texts[mode] || texts.default;
+  },
+
+  async shareApp(mode) {
+    const text = this._buildShareText(mode || 'default');
+    this._trackEvent && this._trackEvent('app_share', { mode: mode || 'default' });
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: '오늘의 활력 버튼 — 30초 건강 측정', text });
+        this._toast && this._toast('공유했어요. 고마워요! 💙');
+        return;
+      }
+    } catch (e) { return; } // 사용자 취소
+    try {
+      await navigator.clipboard.writeText(text);
+      this._toast && this._toast('링크를 복사했어요. 카톡에 붙여넣기 해주세요 📋');
+    } catch (e) {
+      prompt('아래 내용을 복사해서 공유해주세요', text);
+    }
+  },
+
+  // 공유 선택 모달 (누구에게 보낼지)
+  openShareSheet() {
+    let m = document.getElementById('share-sheet');
+    if (m) m.remove();
+    m = document.createElement('div');
+    m.className = 'modal';
+    m.id = 'share-sheet';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.onclick = (e) => { if (e.target === m) m.remove(); };
+    m.innerHTML = `
+      <div class="modal-card" style="max-width:360px;width:100%;padding:24px">
+        <div class="modal-title" style="font-size:19px;text-align:center;margin-bottom:6px">📤 알려주기</div>
+        <p style="font-size:13px;color:#4b5563;line-height:1.6;text-align:center;margin-bottom:18px">
+          누구에게 알려드릴까요?
+        </p>
+        <button class="share-opt" onclick="App.shareApp('parent');App.closeShareSheet()">
+          <span class="share-opt-ic">👨‍👩‍👧</span>
+          <span class="share-opt-tx">
+            <strong>부모님께 알려드리기</strong>
+            <small>"부모님 폰에 깔아드리세요" 문구로 전송</small>
+          </span>
+        </button>
+        <button class="share-opt" onclick="App.shareApp('friend');App.closeShareSheet()">
+          <span class="share-opt-ic">🧑‍🤝‍🧑</span>
+          <span class="share-opt-tx">
+            <strong>친구·지인에게</strong>
+            <small>"이거 신기해요" 문구로 전송</small>
+          </span>
+        </button>
+        <button class="share-opt" onclick="App.openParentGuide();App.closeShareSheet()">
+          <span class="share-opt-ic">📖</span>
+          <span class="share-opt-tx">
+            <strong>설치 도와드리기</strong>
+            <small>부모님 폰에 직접 설치하는 방법</small>
+          </span>
+        </button>
+        <button class="m-btn" style="width:100%;margin-top:12px" onclick="App.closeShareSheet()">닫기</button>
+      </div>`;
+    document.body.appendChild(m);
+  },
+
+  closeShareSheet() {
+    document.getElementById('share-sheet')?.remove();
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // ★ v30.0 자녀용 설치 안내 — 부모님 폰에 설치해 드리는 법
+  // ══════════════════════════════════════════════════════════════
+  openParentGuide() {
+    const url = this._appUrl();
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    let m = document.getElementById('parent-guide-modal');
+    if (m) m.remove();
+    m = document.createElement('div');
+    m.className = 'modal';
+    m.id = 'parent-guide-modal';
+    m.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto';
+    m.onclick = (e) => { if (e.target === m) m.remove(); };
+
+    const androidSteps = `
+      <div class="pg-step"><span class="pg-n">1</span><div>
+        <strong>부모님 폰에서 이 주소를 열어주세요</strong>
+        <div class="pg-url">${this._esc(url)}</div>
+        <small>카톡으로 링크를 보내드리고, 부모님이 누르시면 됩니다</small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">2</span><div>
+        <strong>크롬(Chrome)으로 열어주세요</strong>
+        <small>카카오톡 안에서 열면 카메라가 잘 안 될 수 있어요.<br>
+        오른쪽 위 <b>⋮</b> → <b>"다른 브라우저로 열기"</b></small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">3</span><div>
+        <strong>홈 화면에 추가</strong>
+        <small>크롬 오른쪽 위 <b>⋮</b> → <b>"홈 화면에 추가"</b><br>
+        이러면 일반 앱처럼 아이콘이 생겨요</small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">4</span><div>
+        <strong>권한 허용 눌러주기</strong>
+        <small>카메라·센서 권한을 <b>허용</b>해야 측정됩니다.<br>
+        (사진은 저장되지 않고 폰 안에서만 분석돼요)</small>
+      </div></div>`;
+
+    const iosSteps = `
+      <div class="pg-step"><span class="pg-n">1</span><div>
+        <strong>부모님 폰에서 이 주소를 열어주세요</strong>
+        <div class="pg-url">${this._esc(url)}</div>
+        <small>반드시 <b>사파리(Safari)</b>로 열어야 합니다</small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">2</span><div>
+        <strong>공유 버튼을 눌러주세요</strong>
+        <small>화면 아래 가운데 <b>⬆️ 공유</b> 아이콘</small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">3</span><div>
+        <strong>"홈 화면에 추가" 선택</strong>
+        <small>목록을 아래로 내리면 있어요 → <b>추가</b></small>
+      </div></div>
+      <div class="pg-step"><span class="pg-n">4</span><div>
+        <strong>권한 허용 눌러주기</strong>
+        <small>카메라·동작 권한을 <b>허용</b>해야 측정됩니다.<br>
+        (영상은 저장되지 않고 폰 안에서만 분석돼요)</small>
+      </div></div>`;
+
+    m.innerHTML = `
+      <div class="modal-card pg-card">
+        <div class="pg-head">
+          <div class="pg-title">📖 부모님 폰에 설치해 드리기</div>
+          <div class="pg-sub">천천히 따라 하시면 3분이면 됩니다</div>
+        </div>
+
+        <div class="pg-tabs">
+          <button class="pg-tab ${!isIOS?'on':''}" onclick="App._pgTab('android')">안드로이드</button>
+          <button class="pg-tab ${isIOS?'on':''}" onclick="App._pgTab('ios')">아이폰</button>
+        </div>
+
+        <div id="pg-android" style="display:${!isIOS?'block':'none'}">${androidSteps}</div>
+        <div id="pg-ios" style="display:${isIOS?'block':'none'}">${iosSteps}</div>
+
+        <div class="pg-tip">
+          💡 <strong>설치 후 꼭 알려드리세요</strong><br>
+          "화면 아래 손가락 버튼 누르고, 카메라에 손가락 대고 계시면 돼요"<br>
+          측정 중에는 <b>음성으로 안내</b>가 나와서 어렵지 않습니다.
+        </div>
+
+        <div class="pg-care">
+          💌 부모님이 측정하시면 <strong>안부 메시지</strong>를 받을 수 있어요.<br>
+          <small>부모님 폰에서 홈 화면 → 오늘의 안부 → 설정에서 자녀분 이름을 넣으시면 됩니다.</small>
+        </div>
+
+        <div style="display:flex;gap:9px;margin-top:16px">
+          <button class="m-btn" style="flex:1" onclick="App.closeParentGuide()">닫기</button>
+          <button class="m-btn ok" style="flex:1" onclick="App.shareApp('parent')">링크 보내기</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    this._trackEvent && this._trackEvent('parent_guide_open', {});
+  },
+
+  _pgTab(which) {
+    const a = document.getElementById('pg-android');
+    const i = document.getElementById('pg-ios');
+    if (!a || !i) return;
+    a.style.display = which === 'android' ? 'block' : 'none';
+    i.style.display = which === 'ios' ? 'block' : 'none';
+    document.querySelectorAll('.pg-tab').forEach((b, idx) => {
+      b.classList.toggle('on', (idx === 0) === (which === 'android'));
+    });
+  },
+
+  closeParentGuide() {
+    document.getElementById('parent-guide-modal')?.remove();
+  },
+
+  // 홈에 넣을 확산 카드
+  _buildSpreadCard() {
+    return `
+      <div class="spread-card">
+        <div class="spread-emoji">💙</div>
+        <div class="spread-title">소중한 분께 알려주세요</div>
+        <div class="spread-sub">
+          부모님도 스마트폰만 있으면<br>30초로 건강을 확인하실 수 있어요
+        </div>
+        <div class="spread-btns">
+          <button class="spread-btn primary" onclick="App.openParentGuide()">
+            📖 부모님 폰에 설치해 드리기
+          </button>
+          <button class="spread-btn" onclick="App.openShareSheet()">
+            📤 링크 알려주기
+          </button>
+        </div>
+        <div class="spread-note">무료 · 앱 설치 불필요 · 개인정보 수집 없음</div>
+      </div>`;
+  },
+
+  _injectSpreadCard() {
+    const home = document.getElementById('page-home');
+    if (!home) return;
+    let holder = document.getElementById('spread-holder');
+    if (!holder) {
+      holder = document.createElement('div');
+      holder.id = 'spread-holder';
+      holder.style.padding = '0 16px';
+      const priv = home.querySelector('.privacy-card');
+      if (priv && priv.parentNode) priv.parentNode.insertBefore(holder, priv);
+      else home.appendChild(holder);
+    }
+    holder.innerHTML = this._buildSpreadCard();
+  },
+
   _careCfgKey: 'yb_care_cfg',
 
   _careGetCfg() {
